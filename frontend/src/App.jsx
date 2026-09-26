@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import './styles/base.css'
 import './styles/site.css'
 import './styles/quote.css'
+import './styles/crm.css'
 
 import { Header } from './components/Header.jsx'
 import { Hero } from './components/Hero.jsx'
@@ -12,15 +13,38 @@ import { WhyApex } from './components/WhyApex.jsx'
 import { QuoteCta } from './components/QuoteCta.jsx'
 import { Footer } from './components/Footer.jsx'
 import { QuoteFlow } from './components/QuoteFlow.jsx'
+import { CrmApp } from './components/crm/CrmApp.jsx'
+
+/**
+ * The CRM is reachable only by deep link (?view=crm) so staff can bookmark it
+ * without it appearing in the public site navigation or footer.
+ */
+function initialView() {
+  const requested = new URLSearchParams(window.location.search).get('view')
+  return requested === 'crm' ? 'crm' : 'site'
+}
 
 export default function App() {
-  const [view, setView] = useState('site')
+  const [view, setView] = useState(initialView)
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'auto' })
   }, [view])
 
   const openQuote = useCallback(() => setView('quote'), [])
+
+  // Drop the query param on exit so a refresh lands on the marketing site
+  // instead of bouncing straight back into the CRM.
+  const exitCrm = useCallback(() => {
+    const url = new URL(window.location.href)
+    url.searchParams.delete('view')
+    window.history.replaceState(null, '', url)
+    setView('site')
+  }, [])
+
+  if (view === 'crm') {
+    return <CrmApp onExit={exitCrm} />
+  }
 
   if (view === 'quote') {
     return (

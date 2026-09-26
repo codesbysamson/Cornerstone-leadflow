@@ -1,6 +1,29 @@
 from datetime import date, datetime
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, EmailStr
+
+
+class LeadStatus(StrEnum):
+    """The CRM pipeline.
+
+    Used for request validation only. The ``leads.status`` column deliberately
+    stays a plain ``VARCHAR(50)`` so introducing this set of values requires
+    no database migration.
+    """
+
+    NEW = "NEW"
+    CONTACTED = "CONTACTED"
+    QUALIFIED = "QUALIFIED"
+    QUOTE_SENT = "QUOTE_SENT"
+    WON = "WON"
+    LOST = "LOST"
+
+
+class LeadStatusUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    status: LeadStatus
 
 
 class LeadCreate(BaseModel):
