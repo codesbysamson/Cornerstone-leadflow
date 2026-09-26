@@ -37,7 +37,14 @@ showcases the full enquiry-to-quotation journey for a typical service business.
 - `GET /api/leads/{id}` — retrieve a single lead
 - Automated coverage of both endpoints
 
-The frontend, lead CRM, and quotation stages are built in later milestones.
+**Milestone 3 — Apex Facility Services customer website + quote request**
+
+- React + Vite single-page marketing site for the demo company
+- Five-step quote request mapping exactly to the `LeadCreate` API schema
+- Progress indicator, per-step validation, review-and-edit, and submission states
+- Minimal environment-driven CORS on the API for local development
+
+The lead CRM, quotation builder, and follow-up stages are built in later milestones.
 
 ## Project Structure
 
@@ -54,7 +61,14 @@ cornerstone-leadflow/
 │   ├── alembic/      Migration environment and versions
 │   ├── alembic.ini
 │   └── .env.example  Template for local configuration
-├── frontend/         React + Vite client (added in a later milestone)
+├── frontend/         React + Vite customer site
+│   ├── src/
+│   │   ├── App.jsx        Site / quote-flow view switch
+│   │   ├── components/   Marketing sections and quote flow
+│   │   ├── data/         Service and site copy
+│   │   ├── lib/          API client and validation
+│   │   └── styles/       Design tokens and CSS
+│   └── .env.example  Template for VITE_API_BASE_URL
 ├── README.md
 └── .gitignore
 ```
@@ -62,6 +76,7 @@ cornerstone-leadflow/
 ## Requirements
 
 - Python 3.12+
+- Node.js 20+
 - **PostgreSQL** — required to run the API or apply migrations. Tests do
   **not** require a running server; see [Testing](#testing).
 
@@ -97,6 +112,19 @@ alembic upgrade head
 Use `alembic downgrade base` to roll back, and `alembic upgrade head --sql` to
 preview the SQL without applying it.
 
+## CORS
+
+The Vite dev server runs on a different origin to the API, so the browser
+requires CORS on `/api/leads`. The API allows only explicit origins, read from
+`CORS_ORIGINS` in `backend/.env`:
+
+```ini
+CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
+```
+
+A wildcard is deliberately not used. Only `GET` and `POST` and the
+`Content-Type` header are allowed, and credentials are not permitted.
+
 ## Run the API
 
 ```bash
@@ -106,7 +134,55 @@ uvicorn app.main:app --reload
 The service is then available at `http://127.0.0.1:8000`, with interactive docs at
 `/docs`.
 
+## Frontend Setup
+
+```bash
+cd frontend
+npm install
+cp .env.example .env
+```
+
+The API base URL is read from `VITE_API_BASE_URL` at build time:
+
+```ini
+VITE_API_BASE_URL=http://127.0.0.1:8000
+```
+
+## Run the Frontend
+
+```bash
+cd frontend
+npm run dev
+```
+
+The site is then available at `http://localhost:5173`. `npm run build` produces a
+production bundle in `dist/`, and `npm run preview` serves that bundle locally.
+
+## Local Development Flow
+
+Run these in two terminals from the project root:
+
+```bash
+# Terminal 1 — API
+cd backend
+source .venv/bin/activate
+alembic upgrade head
+uvicorn app.main:app --reload
+
+# Terminal 2 — website
+cd frontend
+npm run dev
+```
+
+Then open `http://localhost:5173`, choose **Request a Quote**, complete the five
+steps, and submit. The enquiry is validated by the browser, posted to
+`POST /api/leads`, persisted to PostgreSQL, and confirmed on screen with a
+generated reference number. Confirm it was stored with `psql`, or via
+`GET /api/leads/{id}` on the `/docs` page.
+
 ## Testing
+
+Backend:
 
 ```bash
 cd backend
@@ -118,6 +194,14 @@ The suite runs against an isolated in-memory SQLite database that is created and
 dropped per test, so **no PostgreSQL server is needed to run the tests**. To
 exercise the suite against a real PostgreSQL database instead, set
 `TEST_DATABASE_URL` (see `.env.example`).
+
+Frontend:
+
+```bash
+cd frontend
+npm run lint
+npm run build
+```
 
 ## API
 

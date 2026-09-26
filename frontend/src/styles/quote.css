@@ -1,0 +1,575 @@
+/* ==========================================================================
+   Multi-step quote request
+   ========================================================================== */
+
+/* Wide enough to read as a focused desktop form rather than a phone-width
+   column dropped into the middle of a large canvas. Mobile is unaffected
+   because the container is fluid. */
+.quote {
+  width: 100%;
+  max-width: 840px;
+  margin-inline: auto;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+/* --------------------------------------------------------------------------
+   Progress indicator
+   -------------------------------------------------------------------------- */
+
+.progress {
+  padding: 1.5rem clamp(1.25rem, 1rem + 1.5vw, 2.25rem);
+  background: var(--navy-900);
+  color: var(--on-dark);
+}
+
+.progress__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  font-size: 0.8125rem;
+  color: var(--on-dark-muted);
+}
+
+.progress__step-label {
+  color: var(--paper);
+  font-weight: 600;
+}
+
+.progress__bar {
+  height: 3px;
+  margin-bottom: 1.25rem;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress__bar-fill {
+  height: 100%;
+  background: var(--accent-on-dark);
+  border-radius: 2px;
+  transition: width 0.25s ease;
+}
+
+.progress__steps {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.progress__step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  text-align: center;
+  color: #8d97a7;
+  transition: color 0.15s ease;
+}
+
+.progress__dot {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--line-dark);
+  border-radius: 50%;
+  font-size: 0.75rem;
+  color: #8d97a7;
+  transition: all 0.15s ease;
+}
+
+.progress__step--current {
+  color: var(--paper);
+}
+
+.progress__step--current .progress__dot {
+  border-color: var(--accent-on-dark);
+  background: var(--accent-on-dark);
+  color: var(--navy-950);
+}
+
+.progress__step--done {
+  color: var(--on-dark-muted);
+}
+
+.progress__step--done .progress__dot {
+  border-color: var(--accent-on-dark);
+  color: var(--accent-on-dark);
+}
+
+@media (max-width: 620px) {
+  .progress {
+    padding: 1.25rem 1rem;
+  }
+
+  /* Labels would collide at this width; the numeric dots carry the state. */
+  .progress__step-label {
+    display: none;
+  }
+
+  .progress__meta {
+    font-size: 0.75rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Step body
+   -------------------------------------------------------------------------- */
+
+.quote__body {
+  padding: clamp(1.5rem, 1rem + 2.5vw, 2.5rem);
+}
+
+.quote__title {
+  margin-bottom: 0.4rem;
+  font-size: 1.5rem;
+}
+
+.quote__hint {
+  margin: 0 0 1.75rem;
+  color: var(--ink-muted);
+  font-size: 0.9375rem;
+}
+
+.quote__fields {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.field-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 1.25rem;
+}
+
+/* --------------------------------------------------------------------------
+   Service selection
+   -------------------------------------------------------------------------- */
+
+.choice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.choice {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem 1.35rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--paper);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.choice:hover {
+  border-color: var(--accent);
+}
+
+.choice--selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.choice input {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  /* Optically centres the control on the first line of the option title. */
+  margin: 0.2rem 0 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.choice__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.choice__title {
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.choice__desc {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--ink-muted);
+}
+
+/* --------------------------------------------------------------------------
+   Prompt box (requirements step)
+   -------------------------------------------------------------------------- */
+
+.prompt-box {
+  margin-top: 1.75rem;
+  padding: 1.1rem 1.25rem;
+  background: var(--off-white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.prompt-box__title {
+  margin: 0 0 0.5rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.prompt-box__list {
+  margin: 0;
+  padding-left: 1.1rem;
+  color: var(--ink-muted);
+  font-size: 0.9375rem;
+}
+
+.prompt-box__list li {
+  padding-block: 0.15rem;
+}
+
+/* --------------------------------------------------------------------------
+   Review step
+   -------------------------------------------------------------------------- */
+
+.review {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.review__group {
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.review__group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  background: var(--off-white);
+  border-bottom: 1px solid var(--line);
+}
+
+.review__group-head h3 {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.review__edit {
+  min-height: 44px;
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--paper);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.review__edit:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.review__rows {
+  margin: 0;
+}
+
+.review__row {
+  display: grid;
+  grid-template-columns: minmax(120px, 34%) minmax(0, 1fr);
+  gap: 1rem;
+  padding: 0.7rem 1rem;
+  border-top: 1px solid var(--line);
+  font-size: 0.9375rem;
+}
+
+.review__row:first-child {
+  border-top: 0;
+}
+
+.review__row dt {
+  color: var(--ink-faint);
+  font-size: 0.8125rem;
+  padding-top: 0.1em;
+}
+
+.review__row dd {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.review__row dd.is-empty {
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+@media (max-width: 520px) {
+  .review__row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.15rem;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Footer controls
+   -------------------------------------------------------------------------- */
+
+.quote__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem clamp(1.25rem, 1rem + 1.5vw, 2.25rem);
+  background: var(--off-white);
+  border-top: 1px solid var(--line);
+}
+
+.quote__footer .btn {
+  min-width: 132px;
+}
+
+.quote__footer-note {
+  flex: 1;
+  font-size: 0.8125rem;
+  color: var(--ink-faint);
+  text-align: center;
+}
+
+@media (max-width: 560px) {
+  .quote__footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .quote__footer .btn {
+    width: 100%;
+  }
+
+  .quote__footer-note {
+    order: -1;
+    text-align: left;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Submission states
+   -------------------------------------------------------------------------- */
+
+.quote__alert {
+  display: flex;
+  gap: 0.85rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--danger);
+  border-left-width: 3px;
+  border-radius: var(--radius);
+  background: var(--danger-soft);
+}
+
+.quote__alert-body {
+  min-width: 0;
+}
+
+.quote__alert strong {
+  display: block;
+  margin-bottom: 0.2rem;
+  font-size: 0.9375rem;
+  color: #7d2525;
+}
+
+.quote__alert p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #8c3a3a;
+}
+
+.quote__alert--info {
+  border-color: var(--line-strong);
+  background: var(--off-white);
+}
+
+.quote__alert--info strong {
+  color: var(--ink);
+}
+
+.quote__alert--info p {
+  color: var(--ink-muted);
+}
+
+/* Inline loading indicator inside the submit button */
+.btn__spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Success
+   -------------------------------------------------------------------------- */
+
+.success {
+  width: 100%;
+  max-width: 720px;
+  margin-inline: auto;
+  padding: clamp(1.75rem, 1.25rem + 2.5vw, 3rem);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-top: 3px solid var(--success);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
+.success__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 1.25rem;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid #bfe0d1;
+  border-radius: 2px;
+  background: #eff8f3;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--success);
+}
+
+.success__badge::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+}
+
+.success h1 {
+  font-size: clamp(1.75rem, 1.4rem + 1.8vw, 2.5rem);
+  margin-bottom: 0.5rem;
+}
+
+.success__lead {
+  margin-bottom: 1.75rem;
+  color: var(--ink-muted);
+}
+
+.success__reference {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem 2.5rem;
+  margin-bottom: 1.5rem;
+  padding: 1.1rem 1.25rem;
+  background: var(--off-white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.success__fact dt {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.success__fact dd {
+  margin: 0.2rem 0 0;
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.success__fact-value--ref {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1.25rem;
+}
+
+.success__what-next {
+  margin-bottom: 1.75rem;
+  padding-left: 1.15rem;
+  list-style: none;
+}
+
+.success__what-next li {
+  position: relative;
+  padding-block: 0.4rem;
+  color: var(--ink-muted);
+  font-size: 0.9375rem;
+}
+
+.success__what-next li::before {
+  content: "";
+  position: absolute;
+  top: 1.05rem;
+  left: -1.15rem;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.success__note {
+  margin-bottom: 1.5rem;
+  padding: 0.85rem 1rem;
+  background: var(--off-white);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  color: var(--ink-faint);
+}
+
+.success__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.875rem;
+}

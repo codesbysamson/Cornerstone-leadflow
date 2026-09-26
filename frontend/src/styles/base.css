@@ -1,0 +1,414 @@
+/* ==========================================================================
+   Apex Facility Services — foundation
+   Design tokens, reset and typography.
+   ========================================================================== */
+
+:root {
+  /* Brand — dark navy family */
+  --navy-950: #060c17;
+  --navy-900: #0a1220;
+  --navy-800: #101b2e;
+  --navy-700: #18263d;
+  --navy-600: #23344f;
+
+  /* Surfaces */
+  --paper: #ffffff;
+  --off-white: #f7f6f3;
+  --sand: #efece5;
+
+  /* Ink */
+  --ink: #10192a;
+  --ink-muted: #4a5567;
+  --ink-faint: #5c6879;
+  --on-dark: #f4f6f8;
+  --on-dark-muted: #aeb9c7;
+  /* Slightly lighter than --on-dark-muted: used for running descriptive copy
+     on the dark sections so it clears WCAG AA without flattening hierarchy. */
+  --on-dark-body: #c6d0dc;
+
+  /* Accent — restrained teal */
+  --accent: #0b6a70;
+  --accent-hover: #095158;
+  --accent-soft: #e4efef;
+  --accent-on-dark: #4fb3ad;
+
+  /* Lines and states */
+  --line: #e3e1db;
+  --line-strong: #cfccc3;
+  --line-dark: rgba(255, 255, 255, 0.14);
+  --danger: #9d2f2f;
+  --danger-soft: #fbeceb;
+  --success: #1d6b4f;
+
+  /* Type */
+  --font-display: ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+
+  /* Layout */
+  --container: 1160px;
+  --container-narrow: 760px;
+  --gutter: 1.5rem;
+  --radius: 4px;
+  --radius-lg: 6px;
+
+  --shadow-sm: 0 1px 2px rgba(16, 25, 42, 0.05);
+  --shadow-md: 0 8px 24px rgba(16, 25, 42, 0.07);
+  --shadow-lg: 0 24px 60px rgba(6, 12, 23, 0.16);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  /* Guards against horizontal overflow from any single wide child. */
+  overflow-x: hidden;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+img,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  margin: 0 0 0.5em;
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: clamp(2.25rem, 1.5rem + 3.2vw, 3.75rem);
+}
+
+h2 {
+  font-size: clamp(1.75rem, 1.25rem + 2.1vw, 2.5rem);
+}
+
+h3 {
+  font-size: 1.25rem;
+}
+
+p {
+  margin: 0 0 1rem;
+  text-wrap: pretty;
+}
+
+p:last-child {
+  margin-bottom: 0;
+}
+
+a {
+  color: var(--accent);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+a:hover {
+  color: var(--accent-hover);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Layout primitives
+   -------------------------------------------------------------------------- */
+
+.container {
+  width: 100%;
+  max-width: var(--container);
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.container--narrow {
+  max-width: var(--container-narrow);
+}
+
+.section {
+  padding-block: clamp(3.5rem, 2rem + 6vw, 6.5rem);
+}
+
+.section--paper {
+  background: var(--paper);
+}
+
+.section--off-white {
+  background: var(--off-white);
+}
+
+.section--dark {
+  background: var(--navy-900);
+  color: var(--on-dark);
+}
+
+.section--dark h2,
+.section--dark h3 {
+  color: var(--paper);
+}
+
+/* Descriptive copy on dark. Scoped to .section--dark .section-heading because
+   `.section-heading p` below is declared later at equal specificity and would
+   otherwise reinstate the near-black ink on a navy background. */
+.section--dark p,
+.section--dark .section-heading p,
+.section--dark li {
+  color: var(--on-dark-body);
+}
+
+/* Eyebrow / section label */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+  margin: 0 0 1.1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.section--dark .eyebrow {
+  color: var(--accent-on-dark);
+}
+
+.eyebrow::before {
+  content: "";
+  width: 1.75rem;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.5;
+}
+
+.section-heading {
+  max-width: 40ch;
+  margin-bottom: clamp(2rem, 1rem + 2.5vw, 3rem);
+}
+
+.section-heading p {
+  color: var(--ink-muted);
+  font-size: 1.0625rem;
+}
+
+/* --------------------------------------------------------------------------
+   Buttons
+   -------------------------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  padding: 0.7rem 1.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.btn--primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn--primary:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: #fff;
+}
+
+.btn--secondary {
+  background: transparent;
+  border-color: var(--line-strong);
+  color: var(--ink);
+}
+
+.btn--secondary:hover:not(:disabled) {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+.section--dark .btn--secondary,
+.hero .btn--secondary {
+  border-color: var(--line-dark);
+  color: var(--paper);
+}
+
+.section--dark .btn--secondary:hover:not(:disabled),
+.hero .btn--secondary:hover:not(:disabled) {
+  border-color: var(--paper);
+  color: var(--paper);
+}
+
+.btn--ghost-light {
+  background: transparent;
+  border-color: var(--line-dark);
+  color: var(--on-dark);
+}
+
+.btn--ghost-light:hover:not(:disabled) {
+  border-color: var(--on-dark);
+  color: var(--paper);
+}
+
+.btn--block {
+  width: 100%;
+}
+
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.875rem;
+}
+
+/* --------------------------------------------------------------------------
+   Visually hidden (accessible labels)
+   -------------------------------------------------------------------------- */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Shared form controls
+   -------------------------------------------------------------------------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.field__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.field__optional {
+  font-weight: 400;
+  color: var(--ink-faint);
+}
+
+.field__hint {
+  font-size: 0.8125rem;
+  color: var(--ink-faint);
+  margin: 0;
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  min-height: 48px;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius);
+  background: var(--paper);
+  color: var(--ink);
+  font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+  /* 16px minimum prevents iOS Safari zoom-on-focus. */
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.textarea {
+  min-height: 148px;
+  resize: vertical;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.input[aria-invalid="true"],
+.select[aria-invalid="true"],
+.textarea[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.input[aria-invalid="true"]:focus,
+.select[aria-invalid="true"]:focus,
+.textarea[aria-invalid="true"]:focus {
+  box-shadow: 0 0 0 3px var(--danger-soft);
+}
+
+.select {
+  appearance: none;
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%234a5567' stroke-width='1.5' d='M1 1.5 6 6.5l5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+}
+
+.field__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--danger);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

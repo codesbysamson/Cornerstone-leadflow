@@ -1,0 +1,771 @@
+/* ==========================================================================
+   Marketing site sections
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   Header
+   -------------------------------------------------------------------------- */
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(10, 18, 32, 0.94);
+  border-bottom: 1px solid var(--line-dark);
+  backdrop-filter: saturate(140%) blur(6px);
+}
+
+.header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  min-height: 72px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: var(--paper);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.brand:hover {
+  color: var(--paper);
+}
+
+.brand__mark {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 3px;
+  background: linear-gradient(150deg, var(--accent-on-dark), var(--accent));
+}
+
+.brand__text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.brand__name {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  letter-spacing: -0.01em;
+}
+
+.brand__sub {
+  font-size: 0.625rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--on-dark-muted);
+}
+
+.nav__link {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--on-dark-muted);
+  text-decoration: none;
+  padding-block: 0.35rem;
+  border-bottom: 1px solid transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.nav__link:hover {
+  color: var(--paper);
+  border-bottom-color: var(--accent-on-dark);
+}
+
+.nav__cta {
+  min-height: 44px;
+  padding: 0.45rem 1.1rem;
+  font-size: 0.875rem;
+}
+
+/* Mobile navigation toggle */
+.nav__toggle {
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.5rem 0.9rem;
+  border: 1px solid var(--line-dark);
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--paper);
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+}
+
+/* The panel is a collapsible menu below the desktop breakpoint, and a plain
+   inline row above it. `hidden` is unreliable here because the open state is
+   driven by display rules, so visibility is expressed through [data-open]. */
+.nav__panel[data-open="false"] {
+  display: none;
+}
+
+.nav__panel {
+  align-items: center;
+  gap: clamp(1rem, 2.4vw, 2.25rem);
+}
+
+@media (max-width: 860px) {
+  .nav__toggle {
+    display: inline-flex;
+  }
+
+  .nav__panel[data-open="true"] {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.25rem;
+    padding: 1rem var(--gutter) 1.5rem;
+    background: var(--navy-950);
+    border-bottom: 1px solid var(--line-dark);
+    box-shadow: var(--shadow-lg);
+  }
+
+  .nav__link {
+    padding-block: 0.75rem;
+    border-bottom: 1px solid var(--line-dark);
+  }
+
+  .nav__cta {
+    margin-top: 0.5rem;
+    min-height: 48px;
+    justify-content: center;
+  }
+}
+
+@media (min-width: 861px) {
+  /* Same specificity as the [data-open] rule and declared after it, so the
+     desktop row layout wins regardless of the mobile menu's toggle state. */
+  .nav__panel,
+  .nav__panel[data-open="false"] {
+    display: flex;
+    flex-direction: row;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Hero
+   -------------------------------------------------------------------------- */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  background: var(--navy-900);
+  color: var(--on-dark);
+  padding-block: clamp(3.5rem, 2rem + 7vw, 7rem);
+}
+
+/* Layered geometric treatment — no stock photography. */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(70% 55% at 78% 12%, rgba(11, 106, 112, 0.28), transparent 62%),
+    linear-gradient(180deg, var(--navy-900), var(--navy-950));
+}
+
+.hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0.045) 1px,
+      transparent 1px
+    ),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(to bottom, rgba(0, 0, 0, 0.85), transparent 78%);
+  pointer-events: none;
+}
+
+.hero__inner {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: clamp(2.5rem, 1rem + 5vw, 5rem);
+  align-items: center;
+}
+
+.hero h1 {
+  color: var(--paper);
+  max-width: 15ch;
+}
+
+.hero__lead {
+  max-width: 48ch;
+  margin-bottom: 2rem;
+  font-size: clamp(1.0625rem, 1rem + 0.35vw, 1.1875rem);
+  color: var(--on-dark-muted);
+}
+
+.hero__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.75rem;
+  margin: 2.25rem 0 0;
+  padding: 1.25rem 0 0;
+  border-top: 1px solid var(--line-dark);
+  list-style: none;
+}
+
+.hero__meta li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--on-dark-muted);
+}
+
+.hero__meta li::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent-on-dark);
+  flex-shrink: 0;
+}
+
+/* Hero side panel — service arrangements summary */
+.hero__panel {
+  padding: clamp(1.5rem, 1rem + 1.5vw, 2rem);
+  background: rgba(255, 255, 255, 0.045);
+  border: 1px solid var(--line-dark);
+  border-radius: var(--radius-lg);
+}
+
+/* The hero is a dark surface but not a .section--dark, so headings and the
+   eyebrow need the light treatment explicitly applied. */
+.hero .eyebrow {
+  color: var(--accent-on-dark);
+}
+
+.hero__panel h2,
+.hero h2 {
+  color: var(--paper);
+}
+
+.hero__panel h2 {
+  font-size: 1.1875rem;
+  line-height: 1.3;
+  margin-bottom: 1.1rem;
+}
+
+.hero__panel-list li {
+  color: var(--on-dark-body);
+}
+
+.hero__panel-list {
+  margin: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.hero__panel-list li {
+  display: flex;
+  gap: 0.85rem;
+  padding-block: 0.85rem;
+  border-top: 1px solid var(--line-dark);
+  font-size: 0.9375rem;
+}
+
+.hero__panel-list li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.hero__panel-list strong {
+  color: var(--paper);
+  font-weight: 600;
+}
+
+.hero__panel-key {
+  flex-shrink: 0;
+  width: 5.5rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-on-dark);
+  padding-top: 0.2em;
+}
+
+@media (max-width: 900px) {
+  .hero__inner {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hero h1 {
+    max-width: 20ch;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Service cards
+   -------------------------------------------------------------------------- */
+
+.services__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 1.5rem;
+}
+
+.service-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  transition: border-color 0.18s ease, box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.service-card:hover {
+  border-color: var(--line-strong);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.service-card__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0.5rem;
+  padding: 1.5rem;
+}
+
+.service-card__index {
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--ink-faint);
+}
+
+.service-card h3 {
+  margin: 0;
+  font-size: 1.1875rem;
+}
+
+.service-card p {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--ink-muted);
+}
+
+.service-card__detail {
+  margin-top: auto;
+  padding-top: 1rem;
+  font-size: 0.875rem;
+  color: var(--ink-faint);
+}
+
+/* --------------------------------------------------------------------------
+   Service visual placeholder (CSS only — illustrative, not photography)
+   -------------------------------------------------------------------------- */
+
+.visual {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-bottom: 1px solid var(--line);
+  background: var(--navy-800);
+}
+
+.visual::before,
+.visual::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.visual::before {
+  background-image: linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0.09) 1px,
+      transparent 1px
+    ),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.09) 1px, transparent 1px);
+  background-size: 34px 34px;
+}
+
+.visual::after {
+  background: radial-gradient(
+    85% 85% at 22% 18%,
+    rgba(79, 179, 173, 0.42),
+    transparent 68%
+  );
+}
+
+.visual__glyph {
+  position: absolute;
+  z-index: 1;
+  right: 1.1rem;
+  bottom: 0.75rem;
+  font-family: var(--font-display);
+  font-size: 2.75rem;
+  line-height: 1;
+  color: rgba(255, 255, 255, 0.16);
+  letter-spacing: -0.02em;
+}
+
+.visual__label {
+  position: absolute;
+  z-index: 1;
+  top: 1rem;
+  left: 1rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid var(--line-dark);
+  border-radius: 2px;
+  background: rgba(6, 12, 23, 0.45);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--on-dark);
+}
+
+/* Per-service treatments so the five cards read as distinct. */
+.visual--office::after {
+  background: radial-gradient(85% 85% at 22% 18%, rgba(79, 179, 173, 0.42), transparent 68%);
+}
+.visual--deep::after {
+  background: radial-gradient(85% 85% at 78% 22%, rgba(79, 179, 173, 0.4), transparent 66%);
+}
+.visual--move::after {
+  background: linear-gradient(115deg, rgba(79, 179, 173, 0.34), transparent 58%),
+    radial-gradient(70% 70% at 85% 85%, rgba(24, 38, 61, 0.9), transparent 70%);
+}
+.visual--facility::after {
+  background: radial-gradient(90% 70% at 50% 110%, rgba(79, 179, 173, 0.38), transparent 66%);
+}
+.visual--commercial::after {
+  background: linear-gradient(200deg, rgba(79, 179, 173, 0.3), transparent 62%),
+    radial-gradient(60% 60% at 12% 88%, rgba(79, 179, 173, 0.22), transparent 70%);
+}
+
+.visual--move .visual::before,
+.visual--facility .visual::before,
+.visual--commercial .visual::before {
+  background-size: 22px 22px;
+}
+
+/* --------------------------------------------------------------------------
+   How it works
+   -------------------------------------------------------------------------- */
+
+.steps-flow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
+  gap: 1px;
+  /* Reset the default <ol> margin: the section heading already owns the gap,
+     and the two margins were previously collapsing into extra dead space. */
+  margin: 0;
+  background: var(--line);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+/* The explanatory copy and the process cards read as one composition here, so
+   the heading sits closer than the default 3rem. */
+#how-it-works .section-heading {
+  margin-bottom: clamp(1.75rem, 1.25rem + 1.25vw, 2.25rem);
+}
+
+.steps-flow__item {
+  padding: clamp(1.5rem, 1rem + 1.5vw, 2.25rem);
+  background: var(--paper);
+}
+
+.steps-flow__number {
+  display: block;
+  margin-bottom: 1rem;
+  font-family: var(--font-display);
+  font-size: 0.9375rem;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+}
+
+.steps-flow__item h3 {
+  font-size: 1.1875rem;
+  margin-bottom: 0.5rem;
+}
+
+.steps-flow__item p {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--ink-muted);
+}
+
+/* --------------------------------------------------------------------------
+   Why Apex
+   -------------------------------------------------------------------------- */
+
+.why__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 1.5rem;
+}
+
+.why__item {
+  padding: 1.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--line-dark);
+  border-radius: var(--radius-lg);
+}
+
+.why__item h3 {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  font-size: 1.25rem;
+  line-height: 1.3;
+  font-weight: 500;
+  margin-bottom: 0.8rem;
+}
+
+.why__item h3::before {
+  content: "";
+  flex-shrink: 0;
+  width: 1.75rem;
+  height: 1px;
+  background: var(--accent-on-dark);
+  transform: translateY(-0.32em);
+}
+
+.why__item p {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.65;
+  color: var(--on-dark-body);
+}
+
+/* --------------------------------------------------------------------------
+   Closing CTA
+   -------------------------------------------------------------------------- */
+
+.closing {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(250px, 300px);
+  gap: clamp(1.5rem, 1rem + 3vw, 3.5rem);
+  align-items: center;
+  padding: clamp(2.25rem, 1.5rem + 3vw, 3.75rem);
+  background: var(--sand);
+  border: 1px solid var(--line-strong);
+  /* Accent rule gives the closing panel a defined edge and lifts it above the
+     service cards without introducing a second background tone. */
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius-lg);
+}
+
+.closing h2 {
+  margin-bottom: 0.65rem;
+}
+
+.closing p {
+  margin: 0;
+  max-width: 48ch;
+  color: var(--ink-muted);
+}
+
+.closing__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.closing__actions .btn {
+  min-height: 56px;
+  font-size: 1rem;
+}
+
+.closing__note {
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--ink-muted);
+  text-align: center;
+}
+
+@media (max-width: 780px) {
+  .closing {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .closing__actions {
+    min-width: 0;
+  }
+
+  .closing__actions .btn {
+    width: 100%;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Footer
+   -------------------------------------------------------------------------- */
+
+.footer {
+  padding-block: clamp(2.5rem, 1.5rem + 3vw, 4rem) 2rem;
+  background: var(--navy-950);
+  color: var(--on-dark-muted);
+}
+
+.footer__top {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--line-dark);
+}
+
+.footer__about {
+  max-width: 38ch;
+}
+
+.footer__about p {
+  margin: 1rem 0 0;
+  font-size: 0.875rem;
+}
+
+.footer__nav h2 {
+  font-family: var(--font-body);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--on-dark);
+  margin-bottom: 0.85rem;
+}
+
+.footer__nav ul {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.footer__nav a,
+.footer__nav button {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 0.875rem;
+  color: var(--on-dark-muted);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.footer__nav a:hover,
+.footer__nav button:hover {
+  color: var(--paper);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.footer__bottom {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-top: 1.5rem;
+  font-size: 0.8125rem;
+}
+
+.footer__disclaimer {
+  max-width: 62ch;
+  color: #7d8899;
+}
+
+/* --------------------------------------------------------------------------
+   Quote page shell
+   -------------------------------------------------------------------------- */
+
+.quote-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--off-white);
+}
+
+.quote-page__bar {
+  background: var(--navy-900);
+  border-bottom: 1px solid var(--line-dark);
+}
+
+.quote-page__bar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 68px;
+}
+
+.quote-page__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0.35rem 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--on-dark-muted);
+  cursor: pointer;
+}
+
+.quote-page__back:hover {
+  color: var(--paper);
+}
+
+.quote-page__ref {
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #7d8899;
+}
+
+.quote-page__main {
+  flex: 1;
+  padding-block: clamp(1.75rem, 1rem + 3vw, 3rem) clamp(2.5rem, 2rem + 3vw, 4rem);
+}
+
+.quote-page__head {
+  max-width: 62ch;
+  margin: 0 auto clamp(1.5rem, 1rem + 2vw, 2.5rem);
+  text-align: center;
+}
+
+.quote-page__head h1 {
+  font-size: clamp(1.875rem, 1.4rem + 2vw, 2.75rem);
+  margin-bottom: 0.4rem;
+}
+
+.quote-page__head p {
+  margin: 0;
+  color: var(--ink-muted);
+}
