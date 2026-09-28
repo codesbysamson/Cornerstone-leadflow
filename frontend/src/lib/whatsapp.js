@@ -70,8 +70,9 @@ export function normalisePhone(raw) {
 }
 
 /**
- * A short, factual opening message. The staff member can edit it in WhatsApp
- * before sending, so it does not try to be a complete script.
+ * A short, factual opening message for a general lead follow-up. The staff
+ * member can edit it in WhatsApp before sending, so it does not try to be a
+ * complete script.
  */
 export function whatsappMessage(lead) {
   const parts = [
@@ -82,9 +83,32 @@ export function whatsappMessage(lead) {
   return parts.join(' ')
 }
 
+/**
+ * The quotation variant. Quotes the reference, the service and the total so the
+ * customer can match the message to the document, and stays to one line.
+ *
+ * `formatMoney` is injected rather than imported so this module keeps its
+ * single responsibility: producing the message text. The caller supplies the
+ * currency-aware formatter.
+ */
+export function quotationWhatsappMessage(lead, quotation, formatMoney) {
+  const firstName = lead.customer_name.trim().split(/\s+/)[0]
+  const total = formatMoney(quotation.total, quotation.currency)
+
+  return (
+    `Hi ${firstName}, your quotation from Apex Facility Services for ` +
+    `${lead.service} is ready. Reference: ${quotation.reference}. Total: ${total}.`
+  )
+}
+
 /** Returns a wa.me URL, or null when the number cannot be normalised safely. */
-export function buildWhatsAppUrl(lead) {
+export function buildWhatsAppUrl(lead, message) {
   const number = normalisePhone(lead.phone)
   if (!number) return null
-  return `https://wa.me/${number}?text=${encodeURIComponent(whatsappMessage(lead))}`
+  return `https://wa.me/${number}?text=${encodeURIComponent(message)}`
+}
+
+/** Lead follow-up link, using the default message. */
+export function buildLeadWhatsAppUrl(lead) {
+  return buildWhatsAppUrl(lead, whatsappMessage(lead))
 }

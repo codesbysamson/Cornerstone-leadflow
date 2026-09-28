@@ -1,8 +1,9 @@
 import { ActivityList } from './ActivityList.jsx'
 import { FollowUpPanel } from './FollowUpPanel.jsx'
+import { QuotationList } from './QuotationList.jsx'
 import { StatusPanel } from './StatusPanel.jsx'
 import { formatDateTime, orDash } from '../../lib/format.js'
-import { buildWhatsAppUrl } from '../../lib/whatsapp.js'
+import { buildLeadWhatsAppUrl } from '../../lib/whatsapp.js'
 
 /**
  * Enquiry facts, in the order a sales user reads them: who, what they need,
@@ -31,10 +32,14 @@ export function LeadDetail({
   onAddNote,
   onSaveFollowUp,
   onClearFollowUp,
+  quotations,
+  quotationBusy,
+  onCreateQuotation,
+  onOpenQuotation,
   saving,
   error,
 }) {
-  const whatsappUrl = buildWhatsAppUrl(lead)
+  const whatsappUrl = buildLeadWhatsAppUrl(lead)
 
   return (
     <>
@@ -86,6 +91,13 @@ export function LeadDetail({
             saving={saving}
             error={error}
             loading={notesLoading}
+          />
+
+          <QuotationList
+            quotations={quotations}
+            onOpen={onOpenQuotation}
+            onCreate={onCreateQuotation}
+            busy={quotationBusy}
           />
         </div>
 

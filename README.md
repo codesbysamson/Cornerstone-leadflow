@@ -56,6 +56,18 @@ The lead CRM and quotation builder are built in later milestones.
   activity history, follow-up, and click-to-WhatsApp
 - Due Today and Overdue follow-up queues, excluding closed leads
 
+**Milestone 5 — Quotation workflow**
+
+- `GET|POST /api/leads/{id}/quotations` — quotation history for a lead, and creation
+- `GET /api/quotations/{id}` — full quotation document
+- `POST /api/quotations/{id}/update` — edit a draft
+- `POST /api/quotations/{id}/status` — DRAFT → SENT → ACCEPTED/REJECTED
+- Quotation editor, document preview, and click-to-WhatsApp sharing
+- Sending a quotation sets the lead to `QUOTE_SENT`; accepting or rejecting
+  deliberately leaves the lead status to staff
+- All money is `Decimal`/`NUMERIC(12, 2)`, priced by the server, with the
+  currency stored as an ISO 4217 code
+
 ## Project Structure
 
 ```
@@ -225,6 +237,11 @@ npm run build
 | GET    | `/api/leads/{id}/notes`      | `200` with the activity history, newest first |
 | POST   | `/api/leads/{id}/notes`      | `201` with the created note                  |
 | POST   | `/api/leads/{id}/follow-up`  | `200` with the updated lead                  |
+| GET    | `/api/leads/{id}/quotations` | `200` with the lead's quotations, newest first |
+| POST   | `/api/leads/{id}/quotations` | `201` with the created draft quotation       |
+| GET    | `/api/quotations/{id}`       | `200` with the quotation, or `404` if unknown |
+| POST   | `/api/quotations/{id}/update` | `200` with the updated draft               |
+| POST   | `/api/quotations/{id}/status` | `200` with the updated quotation            |
 
 ### Create a lead
 
@@ -304,3 +321,54 @@ normalisation is deliberately conservative. Accepted: an explicit `+` country
 code (any country), the `00` international prefix, and the known Apex UK mobile
 national format. Anything that would require guessing a country code is refused,
 and the phone is then shown as plain text with no link.
+
+### Quotations
+
+A quotation is created from a lead, priced by the server, and moved through
+`DRAFT → SENT → ACCEPTED | REJECTED`. A lead can carry several quotations over
+its life, so a rejected quote can be followed by a fresh one without losing the
+old.
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/leads/1/quotations \
+  -H "Content-Type: application/json" \
+  -d '{
+    "currency": "GBP",
+    "discount": "50.00",
+    "notes": "Prices exclude VAT. Valid for 30 days.",
+    "items": [
+      {"description": "Deep clean", "quantity": "2", "unit_price": "150.00"},
+      {"description": "Carpet shampoo", "quantity": "1", "unit_price": "85.50"}
+    ]
+  }'
+```
+
+The request sends descriptions, quantities and unit prices only. Line totals,
+the subtotal and the final total are computed by the server, and any attempt to
+supply them is rejected — a client cannot assert its own figures.
+
+**Money is never binary floating point.** Amounts are persisted as
+`NUMERIC(12, 2)` and handled as Python `Decimal` throughout, rounded half-up
+(not banker's rounding). In JSON they are strings, because a JSON number is an
+IEEE-754 double and `0.1 + 0.2` would not survive the round trip. The
+`currency` column holds an ISO 4217 code, so another deployment can quote in
+NGN or USD with no schema change; `Intl.NumberFormat` does the display
+formatting.
+
+Rejected with `422`: zero or negative quantity, negative unit price, negative
+discount, a discount greater than the subtotal, an empty item list, and a blank
+item description.
+
+**Status transitions.** A quotation is editable only while it is `DRAFT`; once
+`SENT` it is a document the customer has already seen, and editing returns
+`409`. `ACCEPTED` and `REJECTED` are terminal.
+
+Sending a quotation sets the lead to `QUOTE_SENT`. Accepting or rejecting
+deliberately does **not** move the lead to `WON` or `LOST` — staff keep control
+of the pipeline, and can close the lead themselves once a won quote has been
+scoped.
+
+Quotations can be shared by click-to-WhatsApp, reusing the same conservative
+phone normalisation as lead follow-up. The prefilled message carries only the
+customer's first name, the service, the reference and the total; it never
+includes the quotation's internal notes.
