@@ -44,7 +44,17 @@ showcases the full enquiry-to-quotation journey for a typical service business.
 - Progress indicator, per-step validation, review-and-edit, and submission states
 - Minimal environment-driven CORS on the API for local development
 
-The lead CRM, quotation builder, and follow-up stages are built in later milestones.
+The lead CRM and quotation builder are built in later milestones.
+
+**Milestone 4 — Staff CRM (4A lead management, 4B lead action & follow-up)**
+
+- `GET /api/leads` — all leads, newest first
+- `POST /api/leads/{id}/status` — pipeline status, persisted
+- `GET|POST /api/leads/{id}/notes` — append-only staff activity history
+- `POST /api/leads/{id}/follow-up` — set, reschedule or clear the next follow-up
+- Internal CRM at `/?view=crm`: dashboard, lead list, lead detail, status,
+  activity history, follow-up, and click-to-WhatsApp
+- Due Today and Overdue follow-up queues, excluding closed leads
 
 ## Project Structure
 
@@ -205,11 +215,16 @@ npm run build
 
 ## API
 
-| Method | Endpoint            | Response                                     |
-| ------ | ------------------- | -------------------------------------------- |
-| GET    | `/health`           | `{"status": "ok"}`                           |
-| POST   | `/api/leads`        | `201` with the created lead                  |
-| GET    | `/api/leads/{id}`   | `200` with the lead, or `404` if unknown     |
+| Method | Endpoint                     | Response                                     |
+| ------ | ---------------------------- | -------------------------------------------- |
+| GET    | `/health`                    | `{"status": "ok"}`                           |
+| POST   | `/api/leads`                 | `201` with the created lead                  |
+| GET    | `/api/leads`                 | `200` with all leads, newest first           |
+| GET    | `/api/leads/{id}`            | `200` with the lead, or `404` if unknown     |
+| POST   | `/api/leads/{id}/status`     | `200` with the updated lead                  |
+| GET    | `/api/leads/{id}/notes`      | `200` with the activity history, newest first |
+| POST   | `/api/leads/{id}/notes`      | `201` with the created note                  |
+| POST   | `/api/leads/{id}/follow-up`  | `200` with the updated lead                  |
 
 ### Create a lead
 
@@ -238,3 +253,54 @@ Only customer-submitted fields are accepted. `id`, `status`, `source`, and
 Apex Facility Services currently offers: Office Cleaning, Deep Cleaning,
 Move-In / Move-Out Cleaning, Facility Maintenance, and Commercial Cleaning.
 
+
+### Staff activity and follow-up
+
+Add a note to a lead:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/leads/1/notes \
+  -H "Content-Type: application/json" \
+  -d '{"body": "Called and left a voicemail. Wants a quote for the second floor."}'
+```
+
+Notes are append-only and have no author: authentication and users are out of
+scope for this milestone, so a note records what happened and when, not who did
+it.
+
+Set, reschedule or clear the next follow-up:
+
+```bash
+# Set or reschedule (reschedule is just a second POST of the same shape)
+curl -X POST http://127.0.0.1:8000/api/leads/1/follow-up \
+  -H "Content-Type: application/json" \
+  -d '{"due_at": "2026-10-05T14:30:00Z", "action": "Send revised quote"}'
+
+# Clear
+curl -X POST http://127.0.0.1:8000/api/leads/1/follow-up \
+  -H "Content-Type: application/json" \
+  -d '{"clear": true}'
+```
+
+`due_at` **must include a timezone offset**. A naive value such as
+`2026-10-05T14:30` — which is what an HTML `datetime-local` control produces —
+is rejected with `422`, because PostgreSQL would otherwise silently interpret
+it in the database server's own zone. The CRM converts the staff member's local
+wall-clock value to a UTC timestamp before sending it.
+
+Due Today and Overdue are computed in the browser against the viewing staff
+member's own clock, and exclude `WON` and `LOST` leads. Closed leads keep any
+stored follow-up so it reappears if the deal is reopened.
+
+### Click-to-WhatsApp
+
+The CRM builds a `wa.me` deep link from the lead's existing phone number with a
+short prefilled message. There is no messaging provider, API key or webhook, and
+nothing is sent automatically — the link opens WhatsApp and the staff member
+chooses whether to send.
+
+Phone numbers are visitor-supplied free text and are never validated, so
+normalisation is deliberately conservative. Accepted: an explicit `+` country
+code (any country), the `00` international prefix, and the known Apex UK mobile
+national format. Anything that would require guessing a country code is refused,
+and the phone is then shown as plain text with no link.

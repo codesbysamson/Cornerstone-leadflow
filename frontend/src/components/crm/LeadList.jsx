@@ -1,4 +1,5 @@
-import { formatDate } from '../../lib/format.js'
+import { bucketFollowUps } from '../../lib/followUp.js'
+import { formatDate, formatDateTime, orDash } from '../../lib/format.js'
 import { StatusBadge } from './StatusBadge.jsx'
 
 /**
@@ -9,6 +10,11 @@ import { StatusBadge } from './StatusBadge.jsx'
  * control rather than a div with a click handler.
  */
 export function LeadList({ leads, onSelect }) {
+  // One shared clock for the whole render, so an overdue row cannot disagree
+  // with the Overdue count above it.
+  const now = new Date()
+  const overdueIds = new Set(bucketFollowUps(leads, now).overdue.map((l) => l.id))
+
   return (
     <div className="crm-panel">
       <div className="crm-panel__head">
@@ -21,8 +27,8 @@ export function LeadList({ leads, onSelect }) {
       <div className="crm-table-scroll">
         <table className="crm-table">
           <caption className="sr-only">
-            Website enquiries, newest first. Select a lead to view full details
-            and change its status.
+            Website enquiries, newest first. Select a lead to view full details,
+            its activity history, and to change its status or follow-up.
           </caption>
           <thead>
             <tr>
@@ -31,34 +37,57 @@ export function LeadList({ leads, onSelect }) {
               <th scope="col">Service</th>
               <th scope="col">Location</th>
               <th scope="col">Status</th>
+              <th scope="col">Next follow-up</th>
               <th scope="col">Received</th>
             </tr>
           </thead>
           <tbody>
-            {leads.map((lead) => (
-              <tr key={lead.id} onClick={() => onSelect(lead.id)}>
-                <td className="crm-table__ref">#{lead.id}</td>
-                <td>
-                  {/* stopPropagation keeps the row click from firing twice. */}
-                  <button
-                    type="button"
-                    className="crm-table__link"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      onSelect(lead.id)
-                    }}
-                  >
-                    {lead.customer_name}
-                  </button>
-                </td>
-                <td>{lead.service}</td>
-                <td>{lead.location}</td>
-                <td>
-                  <StatusBadge status={lead.status} />
-                </td>
-                <td className="crm-table__date">{formatDate(lead.created_at)}</td>
-              </tr>
-            ))}
+            {leads.map((lead) => {
+              const isOverdue = overdueIds.has(lead.id)
+              return (
+                <tr
+                  key={lead.id}
+                  onClick={() => onSelect(lead.id)}
+                  className={isOverdue ? 'is-overdue' : undefined}
+                >
+                  <td className="crm-table__ref">#{lead.id}</td>
+                  <td>
+                    {/* stopPropagation keeps the row click from firing twice. */}
+                    <button
+                      type="button"
+                      className="crm-table__link"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        onSelect(lead.id)
+                      }}
+                    >
+                      {lead.customer_name}
+                    </button>
+                  </td>
+                  <td>{lead.service}</td>
+                  <td>{lead.location}</td>
+                  <td>
+                    <StatusBadge status={lead.status} />
+                  </td>
+                  <td className="crm-table__date">
+                    {lead.next_follow_up_at ? (
+                      <>
+                        <span className={isOverdue ? 'crm-followup-overdue' : undefined}>
+                          {isOverdue ? 'Overdue · ' : ''}
+                          {formatDateTime(lead.next_follow_up_at)}
+                        </span>
+                        <span className="crm-table__sub">
+                          {orDash(lead.next_follow_up_action)}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="crm-table__sub">Not set</span>
+                    )}
+                  </td>
+                  <td className="crm-table__date">{formatDate(lead.created_at)}</td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

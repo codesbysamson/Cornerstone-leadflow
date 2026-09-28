@@ -578,3 +578,297 @@
   border: 1px solid var(--line);
   border-radius: var(--radius);
 }
+
+/* --------------------------------------------------------------------------
+   Follow-up queues (Overdue / Due today)
+   -------------------------------------------------------------------------- */
+
+.crm-queue {
+  margin-bottom: 1.25rem;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.crm-queue__head {
+  padding: 0.7rem 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.crm-queue__title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+}
+
+.crm-queue__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  background: var(--sand);
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+}
+
+.crm-queue__empty {
+  margin: 0;
+  padding: 0.85rem 1rem;
+  font-size: 0.875rem;
+  color: var(--ink-faint);
+}
+
+.crm-queue__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.crm-queue__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.65rem 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.crm-queue__item:last-child {
+  border-bottom: 0;
+}
+
+.crm-queue__link {
+  min-height: 32px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--accent);
+  text-align: left;
+  cursor: pointer;
+}
+
+.crm-queue__link:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.crm-queue__action {
+  font-size: 0.875rem;
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+}
+
+.crm-queue__when {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--danger);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .crm-queue__item {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.15rem;
+  }
+
+  .crm-queue__link {
+    min-height: 44px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Follow-up: current value, panel and list column
+   -------------------------------------------------------------------------- */
+
+.crm-followup-current {
+  margin: 0 0 1rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.crm-followup-current > div {
+  display: grid;
+  grid-template-columns: 4.5rem minmax(0, 1fr);
+  gap: 0.5rem;
+  padding: 0.2rem 0;
+  font-size: 0.875rem;
+}
+
+.crm-followup-current dt {
+  color: var(--ink-faint);
+}
+
+.crm-followup-current dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.crm-status__hint--block {
+  margin-bottom: 1rem;
+  padding: 0.5rem 0.6rem;
+  background: var(--off-white);
+  border-radius: var(--radius);
+  font-style: italic;
+}
+
+.crm-status__form .field__label {
+  font-size: 0.8125rem;
+}
+
+.crm-followup-overdue {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.crm-table__sub {
+  display: block;
+  color: var(--ink-faint);
+  font-size: 0.8125rem;
+}
+
+/* Overdue rows carry a text label as well as this marker, so the state is
+   never conveyed by colour or by a border alone. */
+.crm-table tbody tr.is-overdue {
+  box-shadow: inset 3px 0 0 0 var(--danger);
+}
+
+/* --------------------------------------------------------------------------
+   Activity history
+   -------------------------------------------------------------------------- */
+
+.crm-detail__main,
+.crm-detail__side {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+.crm-activity__composer {
+  padding: 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.crm-activity__input {
+  min-height: 92px;
+}
+
+.crm-activity__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-top: 0.6rem;
+}
+
+.crm-activity__count {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.crm-activity__actions .btn {
+  min-height: 44px;
+}
+
+.crm-activity__empty {
+  margin: 0;
+  padding: 1.25rem 1rem;
+  font-size: 0.875rem;
+  color: var(--ink-faint);
+  font-style: italic;
+}
+
+.crm-activity__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.crm-activity__item {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.crm-activity__item:last-child {
+  border-bottom: 0;
+}
+
+.crm-activity__body {
+  margin: 0 0 0.3rem;
+  font-size: 0.9375rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.crm-activity__time {
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --------------------------------------------------------------------------
+   Click-to-WhatsApp
+   -------------------------------------------------------------------------- */
+
+.crm-whatsapp {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  max-width: 20rem;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #a8d8cf;
+  border-radius: var(--radius);
+  background: #eef7f5;
+  text-decoration: none;
+}
+
+.crm-whatsapp:hover {
+  background: #e2f0ec;
+  border-color: var(--accent);
+}
+
+.crm-whatsapp--unavailable {
+  border-style: dashed;
+  border-color: var(--line-strong);
+  background: var(--off-white);
+}
+
+.crm-whatsapp__label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+.crm-whatsapp--unavailable .crm-whatsapp__label {
+  color: var(--ink-muted);
+}
+
+.crm-whatsapp__hint {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+  line-height: 1.4;
+}
+
+@media (max-width: 720px) {
+  .crm-whatsapp {
+    max-width: none;
+  }
+}

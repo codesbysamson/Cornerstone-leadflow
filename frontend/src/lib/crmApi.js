@@ -16,10 +16,13 @@ export const LEADS_ENDPOINT = `${API_BASE_URL}/api/leads`
 
 const REQUEST_FAILED =
   'Could not reach the LeadFlow API. Check that the backend is running and try again.'
-const REQUEST_FAILED_STATUS =
-  'The status could not be updated. Nothing was changed — please try again.'
 
-async function request(path, options = {}) {
+/**
+ * The shared request helper. `failureMessage` is supplied per call because a
+ * single generic string would mislabel what actually failed — "the status
+ * could not be updated" is wrong and alarming when it was a note that failed.
+ */
+async function request(path, failureMessage, options = {}) {
   let response
 
   try {
@@ -40,20 +43,62 @@ async function request(path, options = {}) {
   }
 
   if (!response.ok) {
-    throw new Error(REQUEST_FAILED_STATUS)
+    throw new Error(failureMessage)
   }
 
   return body
 }
 
+function jsonBody(payload) {
+  return {
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  }
+}
+
 export async function listLeads() {
-  return request(LEADS_ENDPOINT, { method: 'GET' })
+  return request(`${LEADS_ENDPOINT}`, 'The leads could not be loaded.', {
+    method: 'GET',
+  })
 }
 
 export async function updateLeadStatus(leadId, status) {
-  return request(`${LEADS_ENDPOINT}/${leadId}/status`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
-  })
+  return request(
+    `${LEADS_ENDPOINT}/${leadId}/status`,
+    'The status could not be updated. Nothing was changed — please try again.',
+    { method: 'POST', ...jsonBody({ status }) },
+  )
+}
+
+export async function listNotes(leadId) {
+  return request(
+    `${LEADS_ENDPOINT}/${leadId}/notes`,
+    'The activity history could not be loaded.',
+    { method: 'GET' },
+  )
+}
+
+export async function createNote(leadId, body) {
+  return request(
+    `${LEADS_ENDPOINT}/${leadId}/notes`,
+    'The note could not be saved. Please try again.',
+    { method: 'POST', ...jsonBody({ body }) },
+  )
+}
+
+/** Sets or reschedules the follow-up. Reschedule is just a second call. */
+export async function saveFollowUp(leadId, dueAt, action) {
+  return request(
+    `${LEADS_ENDPOINT}/${leadId}/follow-up`,
+    'The follow-up could not be saved. Nothing was changed — please try again.',
+    { method: 'POST', ...jsonBody({ due_at: dueAt, action }) },
+  )
+}
+
+export async function clearFollowUp(leadId) {
+  return request(
+    `${LEADS_ENDPOINT}/${leadId}/follow-up`,
+    'The follow-up could not be cleared. Nothing was changed — please try again.',
+    { method: 'POST', ...jsonBody({ clear: true }) },
+  )
 }

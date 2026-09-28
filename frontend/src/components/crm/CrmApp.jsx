@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 
-import { listLeads, updateLeadStatus } from '../../lib/crmApi.js'
+import {
+  clearFollowUp,
+  createNote,
+  listLeads,
+  listNotes,
+  saveFollowUp,
+  updateLeadStatus,
+} from '../../lib/crmApi.js'
 import { Dashboard } from './Dashboard.jsx'
 import { LeadDetail } from './LeadDetail.jsx'
 import { LeadList } from './LeadList.jsx'
@@ -9,9 +16,9 @@ import { LeadList } from './LeadList.jsx'
  * The staff lead CRM.
  *
  * All leads are held in one `leads` array and the detail view is a selection
- * into it. That keeps a status change trivially consistent: the updated lead
- * from the server replaces its entry in place, and the dashboard counts stay
- * correct without a refetch.
+ * into it. That keeps every mutation trivially consistent: the updated lead
+ * from the server replaces its entry in place, and the dashboard counts and
+ * follow-up buckets stay correct without a refetch.
  */
 export function CrmApp({ onExit }) {
   const [leads, setLeads] = useState([])
@@ -20,6 +27,11 @@ export function CrmApp({ onExit }) {
   const [loadError, setLoadError] = useState(null)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(null)
+
+  // Notes are per-lead and fetched on demand, so they are kept outside the
+  // leads array to keep list loads cheap.
+  const [notes, setNotes] = useState([])
+  const [notesLoading, setNotesLoading] = useState(false)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -44,6 +56,41 @@ export function CrmApp({ onExit }) {
       ? null
       : (leads.find((lead) => lead.id === selectedId) ?? null)
 
+  // Load this lead's history whenever the selection changes. The guard stops a
+  // slow response for a previously selected lead from overwriting the current
+  // one's notes.
+  useEffect(() => {
+    if (selectedLead === null) {
+      setNotes([])
+      return
+    }
+
+    let active = true
+    setNotesLoading(true)
+
+    listNotes(selectedLead.id)
+      .then((data) => {
+        if (active) setNotes(Array.isArray(data) ? data : [])
+      })
+      .catch(() => {
+        if (active) setNotes([])
+      })
+      .finally(() => {
+        if (active) setNotesLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [selectedLead?.id])
+
+  /** Replaces a lead in place from the server's copy. */
+  function applyLead(updated) {
+    setLeads((current) =>
+      current.map((lead) => (lead.id === updated.id ? updated : lead)),
+    )
+  }
+
   async function handleChangeStatus(status) {
     if (!selectedLead) return
 
@@ -51,12 +98,7 @@ export function CrmApp({ onExit }) {
     setSaveError(null)
 
     try {
-      // Trust the server's copy of the lead, so the displayed status always
-      // reflects what was actually persisted.
-      const updated = await updateLeadStatus(selectedLead.id, status)
-      setLeads((current) =>
-        current.map((lead) => (lead.id === updated.id ? updated : lead)),
-      )
+      applyLead(await updateLeadStatus(selectedLead.id, status))
     } catch (error) {
       setSaveError(error.message)
     } finally {
@@ -64,9 +106,65 @@ export function CrmApp({ onExit }) {
     }
   }
 
+  /** Returns true when the note was confirmed persisted. */
+  async function handleAddNote(body) {
+    if (!selectedLead) return false
+
+    setSaving(true)
+    setSaveError(null)
+
+    try {
+      const created = await createNote(selectedLead.id, body)
+      // Newest-first, matching the server's own ordering.
+      setNotes((current) => [created, ...current])
+      return true
+    } catch (error) {
+      setSaveError(error.message)
+      return false
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleSaveFollowUp(dueAt, action) {
+    if (!selectedLead) return
+
+    setSaving(true)
+    setSaveError(null)
+
+    try {
+      applyLead(await saveFollowUp(selectedLead.id, dueAt, action))
+    } catch (error) {
+      setSaveError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleClearFollowUp() {
+    if (!selectedLead) return
+
+    setSaving(true)
+    setSaveError(null)
+
+    try {
+      applyLead(await clearFollowUp(selectedLead.id))
+    } catch (error) {
+      setSaveError(error.message)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function handleSelect(leadId) {
+    setSelectedId(leadId)
+    setSaveError(null)
+  }
+
   function handleBack() {
     setSelectedId(null)
     setSaveError(null)
+    setNotes([])
   }
 
   return (
@@ -105,8 +203,13 @@ export function CrmApp({ onExit }) {
         ) : selectedLead ? (
           <LeadDetail
             lead={selectedLead}
+            notes={notes}
+            notesLoading={notesLoading}
             onBack={handleBack}
             onChangeStatus={handleChangeStatus}
+            onAddNote={handleAddNote}
+            onSaveFollowUp={handleSaveFollowUp}
+            onClearFollowUp={handleClearFollowUp}
             saving={saving}
             error={saveError}
           />
@@ -114,8 +217,8 @@ export function CrmApp({ onExit }) {
           <EmptyState />
         ) : (
           <>
-            <Dashboard leads={leads} />
-            <LeadList leads={leads} onSelect={setSelectedId} />
+            <Dashboard leads={leads} onSelect={handleSelect} />
+            <LeadList leads={leads} onSelect={handleSelect} />
           </>
         )}
       </main>
