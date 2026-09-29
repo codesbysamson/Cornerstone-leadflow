@@ -26,7 +26,14 @@ def get_database_url() -> str:
 
 @lru_cache
 def get_engine() -> Engine:
-    return create_engine(get_database_url())
+    # pool_pre_ping checks a pooled connection is still alive before handing it
+    # out, and transparently replaces it if not.
+    #
+    # Serverless PostgreSQL, Neon included, closes connections that have been
+    # idle, and can suspend compute entirely. Without this, the first request
+    # after a quiet period fails on a connection the database had already
+    # discarded, which presents as an intermittent 500 unrelated to the request.
+    return create_engine(get_database_url(), pool_pre_ping=True)
 
 
 @lru_cache

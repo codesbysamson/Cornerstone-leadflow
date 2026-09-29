@@ -131,7 +131,6 @@
     gap: 0.25rem;
     padding: 1rem var(--gutter) 1.5rem;
     background: var(--navy-950);
-    border-bottom: 1px solid var(--line-dark);
     box-shadow: var(--shadow-lg);
   }
 
@@ -219,9 +218,9 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem 1.75rem;
-  margin: 2.25rem 0 0;
-  padding: 1.25rem 0 0;
-  border-top: 1px solid var(--line-dark);
+  /* Separated from the copy above by space rather than a full-bleed rule: the
+     row is already set apart by its own type and letter-spacing. */
+  margin: 2.75rem 0 0;
   list-style: none;
 }
 
@@ -385,7 +384,6 @@
   position: relative;
   aspect-ratio: 16 / 9;
   overflow: hidden;
-  border-bottom: 1px solid var(--line);
   background: var(--navy-800);
 }
 
@@ -633,8 +631,9 @@
   flex-wrap: wrap;
   justify-content: space-between;
   gap: 2rem;
-  padding-bottom: 2rem;
-  border-bottom: 1px solid var(--line-dark);
+  /* Whitespace carries the separation. A rule here drew a line across the full
+     page width for no gain — the footer already sits on its own background. */
+  padding-bottom: 2.75rem;
 }
 
 .footer__about {
@@ -711,8 +710,9 @@
 }
 
 .quote-page__bar {
+  /* No bottom rule: the dark bar already reads as a distinct band against the
+     light quote page below it. */
   background: var(--navy-900);
-  border-bottom: 1px solid var(--line-dark);
 }
 
 .quote-page__bar-inner {

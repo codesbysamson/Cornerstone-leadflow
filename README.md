@@ -22,51 +22,61 @@ The initial demonstration is built for a fictional client, **Apex Facility
 Services** — a commercial cleaning and facilities maintenance provider. It
 showcases the full enquiry-to-quotation journey for a typical service business.
 
-## Current Milestone
+## Current State
 
-**Milestone 1 — Project foundation + API health check**
+**V1 — complete.** Milestones 1–6 are done, and the application is deployable.
 
-- Repository hygiene (`.gitignore`, this README)
-- Minimal FastAPI application with a `GET /health` endpoint
-- Automated test coverage of that endpoint
+```
+Public website → enquiry → protected staff CRM → status & follow-up
+              → quotation → WhatsApp sharing → accepted / rejected
+```
 
-**Milestone 2 — Persistent Lead Capture**
+| Milestone | Delivered |
+| --------- | --------- |
+| 1 | Project foundation + `GET /health` |
+| 2 | Persistent lead capture (PostgreSQL, SQLAlchemy, Alembic) |
+| 3 | Apex Facility Services customer website + five-step quote request |
+| 4 | Staff CRM: lead list, status, activity history, follow-up, WhatsApp |
+| 5 | Quotation workflow: editor, document preview, lifecycle, WhatsApp sharing |
+| 6 | Staff authentication: opaque server-side sessions, HttpOnly cookies, CSRF, login throttling, CLI bootstrap |
 
-- PostgreSQL persistence via SQLAlchemy 2.x, with Alembic migrations
-- `POST /api/leads` — structured enquiry validated, persisted, and returned
-- `GET /api/leads/{id}` — retrieve a single lead
-- Automated coverage of both endpoints
+Database migration head is **`0004`**.
 
-**Milestone 3 — Apex Facility Services customer website + quote request**
+### Public vs staff API
 
-- React + Vite single-page marketing site for the demo company
-- Five-step quote request mapping exactly to the `LeadCreate` API schema
-- Progress indicator, per-step validation, review-and-edit, and submission states
-- Minimal environment-driven CORS on the API for local development
+The `/api/leads` prefix carries two different audiences, and the boundary is
+enforced on the server — hiding the CRM in the frontend is a convenience, not a
+control.
 
-The lead CRM and quotation builder are built in later milestones.
+| Public | Staff (session required) |
+| ------ | ----------------------- |
+| `POST /api/leads` — customer enquiry | `GET /api/leads`, `GET /api/leads/{id}` |
+| `GET /health` | `POST /api/leads/{id}/status` |
+| `POST /api/auth/login` | `GET|POST /api/leads/{id}/notes` |
+| `GET /api/auth/session` | `POST /api/leads/{id}/follow-up` |
+| | `GET|POST /api/leads/{id}/quotations` |
+| | `GET /api/quotations/{id}`, `POST /api/quotations/{id}/update`, `POST /api/quotations/{id}/status` |
 
-**Milestone 4 — Staff CRM (4A lead management, 4B lead action & follow-up)**
+A customer submitting an enquiry has no session and never will, so the public
+submission endpoint must never require one.
 
-- `GET /api/leads` — all leads, newest first
-- `POST /api/leads/{id}/status` — pipeline status, persisted
-- `GET|POST /api/leads/{id}/notes` — append-only staff activity history
-- `POST /api/leads/{id}/follow-up` — set, reschedule or clear the next follow-up
-- Internal CRM at `/?view=crm`: dashboard, lead list, lead detail, status,
-  activity history, follow-up, and click-to-WhatsApp
-- Due Today and Overdue follow-up queues, excluding closed leads
+### Staff authentication
 
-**Milestone 5 — Quotation workflow**
+Staff reach the CRM at `/?view=crm` and sign in with a work email and password.
 
-- `GET|POST /api/leads/{id}/quotations` — quotation history for a lead, and creation
-- `GET /api/quotations/{id}` — full quotation document
-- `POST /api/quotations/{id}/update` — edit a draft
-- `POST /api/quotations/{id}/status` — DRAFT → SENT → ACCEPTED/REJECTED
-- Quotation editor, document preview, and click-to-WhatsApp sharing
-- Sending a quotation sets the lead to `QUOTE_SENT`; accepting or rejecting
-  deliberately leaves the lead status to staff
-- All money is `Decimal`/`NUMERIC(12, 2)`, priced by the server, with the
-  currency stored as an ISO 4217 code
+- Passwords are hashed with **Argon2id** and never stored or logged in plaintext.
+- Sign-in issues an **opaque 256-bit token**; the browser holds it in an
+  **HttpOnly** `leadflow_session` cookie, and the server stores only a SHA-256
+  digest, so a database dump yields nothing replayable.
+- Sessions expire **12 hours after login**, absolutely — activity does not
+  extend them.
+- A matching `leadflow_csrf` cookie must be echoed in an `X-CSRF-Token` header
+  on state-changing requests, which prevents another site from driving the
+  browser with a signed-in staff member's cookies.
+- Repeated failures are throttled per account from a database-backed counter.
+  Every failure looks identical, so the form cannot be used to discover which
+  email addresses exist.
+- Disabling an account invalidates its live sessions immediately.
 
 ## Project Structure
 
@@ -74,22 +84,26 @@ The lead CRM and quotation builder are built in later milestones.
 cornerstone-leadflow/
 ├── backend/          FastAPI service (Python)
 │   ├── app/
-│   │   ├── main.py       FastAPI app and router wiring
-│   │   ├── database.py   Engine, session factory, get_db dependency
-│   │   ├── models.py     SQLAlchemy Lead model
-│   │   ├── schemas.py    Pydantic request/response schemas
-│   │   └── routes/       API route modules
+│   │   ├── main.py         FastAPI app, router wiring, CORS
+│   │   ├── config.py       Environment-driven settings + production validation
+│   │   ├── database.py     Engine, session factory, get_db dependency
+│   │   ├── models.py       SQLAlchemy models
+│   │   ├── schemas.py      Pydantic request/response schemas
+│   │   ├── security.py     Argon2id hashing, token digests, cookie attributes
+│   │   ├── dependencies.py Staff session and CSRF enforcement
+│   │   ├── cli.py          `create-staff` bootstrap command
+│   │   └── routes/         API route modules
 │   ├── tests/        pytest suite
-│   ├── alembic/      Migration environment and versions
+│   ├── alembic/      Migration environment and versions (head: 0004)
 │   ├── alembic.ini
 │   └── .env.example  Template for local configuration
-├── frontend/         React + Vite customer site
+├── frontend/         React + Vite customer site + staff CRM
 │   ├── src/
-│   │   ├── App.jsx        Site / quote-flow view switch
-│   │   ├── components/   Marketing sections and quote flow
-│   │   ├── data/         Service and site copy
-│   │   ├── lib/          API client and validation
-│   │   └── styles/       Design tokens and CSS
+│   │   ├── App.jsx        Site / quote-flow / CRM view switch
+│   │   ├── components/    Marketing sections, quote flow, staff CRM
+│   │   ├── data/          Service and site copy
+│   │   ├── lib/           API clients, auth, configuration
+│   │   └── styles/        Design tokens and CSS
 │   └── .env.example  Template for VITE_API_BASE_URL
 ├── README.md
 └── .gitignore
@@ -136,16 +150,19 @@ preview the SQL without applying it.
 
 ## CORS
 
-The Vite dev server runs on a different origin to the API, so the browser
-requires CORS on `/api/leads`. The API allows only explicit origins, read from
-`CORS_ORIGINS` in `backend/.env`:
+The frontend is served from a different origin to the API, so the browser
+requires CORS. The API allows only explicit origins, read from `CORS_ORIGINS` in
+`backend/.env`:
 
 ```ini
 CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173
 ```
 
-A wildcard is deliberately not used. Only `GET` and `POST` and the
-`Content-Type` header are allowed, and credentials are not permitted.
+A wildcard is deliberately not used and is **rejected at startup**, because
+credentials are enabled for staff sessions and a wildcard would let any site
+make authenticated requests as a signed-in staff member. Credentials are allowed,
+`GET` and `POST` are the permitted methods, and `X-CSRF-Token` is an allowed
+request header.
 
 ## Run the API
 
@@ -154,7 +171,8 @@ uvicorn app.main:app --reload
 ```
 
 The service is then available at `http://127.0.0.1:8000`, with interactive docs at
-`/docs`.
+`/docs` in development. Docs and the OpenAPI schema are **disabled when
+`APP_ENV=production`**, because they publish every internal route and payload.
 
 ## Frontend Setup
 
@@ -164,11 +182,18 @@ npm install
 cp .env.example .env
 ```
 
-The API base URL is read from `VITE_API_BASE_URL` at build time:
+The API base URL is read from `VITE_API_BASE_URL` at **build** time, because
+Vite inlines it into the bundle. Changing it later requires a rebuild.
 
 ```ini
 VITE_API_BASE_URL=http://127.0.0.1:8000
 ```
+
+It **must use the same host name as the page**, not merely the same machine. The
+session cookie is `SameSite=Lax` and host-scoped, so a page on `localhost`
+talking to an API on `127.0.0.1` can neither read the CSRF cookie nor have the
+session cookie sent back, and sign-in fails with a bare 403. See
+`frontend/src/lib/apiConfig.js`.
 
 ## Run the Frontend
 
@@ -202,6 +227,27 @@ steps, and submit. The enquiry is validated by the browser, posted to
 generated reference number. Confirm it was stored with `psql`, or via
 `GET /api/leads/{id}` on the `/docs` page.
 
+The CRM is at `http://localhost:5173/?view=crm`. It needs a staff account — see
+[Creating the first staff account](#creating-the-first-staff-account).
+
+## Creating the first staff account
+
+No account is ever seeded by a migration, so a fresh database has no way in.
+Create one explicitly:
+
+```bash
+cd backend
+python -m app.cli create-staff you@example.com --display-name "Your Name"
+```
+
+The password is prompted for twice with `getpass`, must be at least 12
+characters, and is never echoed, logged, or passed as an argument. A duplicate
+email is refused rather than overwritten. For automation, `--password-env VAR`
+reads it from an environment variable instead.
+
+The `DATABASE_URL` in your environment must point at the migrated database —
+run `alembic upgrade head` first.
+
 ## Testing
 
 Backend:
@@ -225,23 +271,80 @@ npm run lint
 npm run build
 ```
 
+## Production Deployment
+
+### Environment variables
+
+Required on the API. The API validates these at startup and **refuses to start**
+on an unsafe combination rather than serve a weaker service than intended.
+
+| Variable | Production value | Why |
+| -------- | ---------------- | --- |
+| `DATABASE_URL` | Neon **pooled** URL (`-pooler`) with `sslmode=require` | Secret. Pooling keeps a web service from exhausting the connection limit. |
+| `APP_ENV` | `production` | Enables the checks below and disables `/docs` and `/openapi.json`. |
+| `COOKIE_SECURE` | `true` | **Mandatory in production**; startup fails without it. Marks cookies HTTPS-only. |
+| `CORS_ORIGINS` | the frontend's origin, e.g. `https://www.example.com` | Explicit origins only. A `*` is rejected at startup. |
+
+Optional, with defaults: `SESSION_MAX_AGE_SECONDS=43200`,
+`LOGIN_MAX_FAILURES=5`, `LOGIN_WINDOW_MINUTES=15`, `ARGON2_TIME_COST=3`,
+`ARGON2_MEMORY_COST=65536`, `ARGON2_PARALLELISM=4`. Reduced Argon2 costs are
+rejected in production. All of these are documented in `backend/.env.example`.
+
+`DATABASE_URL` is the only secret. Never commit `backend/.env`.
+
+### Same-site requirement
+
+The frontend and API must be on the **same site** — the same registrable domain
+and scheme, such as `www.example.com` and `api.example.com`. The session cookie
+is `SameSite=Lax`, so a browser withholds it from a different site entirely: sign-in
+would appear to succeed and then every later request would fail with a 401.
+
+Subdomains of one domain satisfy this. Unrelated hosts (`vercel.app` and
+`render.com`) do not.
+
+### Commands
+
+API, from the `backend/` directory:
+
+```bash
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port $PORT
+```
+
+Health check: `GET /health`. It is a liveness check and does not query the
+database.
+
+Frontend, from the `frontend/` directory:
+
+```bash
+npm ci
+VITE_API_BASE_URL=https://api.example.com npm run build
+```
+
+Publish the `dist/` directory as static files. There is no client-side router —
+the CRM is a `?view=crm` query parameter — so no SPA rewrite rule is needed.
+
 ## API
 
 | Method | Endpoint                     | Response                                     |
 | ------ | ---------------------------- | -------------------------------------------- |
 | GET    | `/health`                    | `{"status": "ok"}`                           |
-| POST   | `/api/leads`                 | `201` with the created lead                  |
-| GET    | `/api/leads`                 | `200` with all leads, newest first           |
-| GET    | `/api/leads/{id}`            | `200` with the lead, or `404` if unknown     |
-| POST   | `/api/leads/{id}/status`     | `200` with the updated lead                  |
-| GET    | `/api/leads/{id}/notes`      | `200` with the activity history, newest first |
-| POST   | `/api/leads/{id}/notes`      | `201` with the created note                  |
-| POST   | `/api/leads/{id}/follow-up`  | `200` with the updated lead                  |
-| GET    | `/api/leads/{id}/quotations` | `200` with the lead's quotations, newest first |
-| POST   | `/api/leads/{id}/quotations` | `201` with the created draft quotation       |
-| GET    | `/api/quotations/{id}`       | `200` with the quotation, or `404` if unknown |
-| POST   | `/api/quotations/{id}/update` | `200` with the updated draft               |
-| POST   | `/api/quotations/{id}/status` | `200` with the updated quotation            |
+| POST   | `/api/leads`                 | `201` with the created lead *(public)*       |
+| GET    | `/api/leads`                 | `200` with all leads, newest first *(staff)* |
+| GET    | `/api/leads/{id}`            | `200` with the lead, or `404` if unknown *(staff)* |
+| POST   | `/api/leads/{id}/status`     | `200` with the updated lead *(staff)*        |
+| GET    | `/api/leads/{id}/notes`      | `200` with the activity history, newest first *(staff)* |
+| POST   | `/api/leads/{id}/notes`      | `201` with the created note *(staff)*        |
+| POST   | `/api/leads/{id}/follow-up`  | `200` with the updated lead *(staff)*        |
+| GET    | `/api/leads/{id}/quotations` | `200` with the lead's quotations, newest first *(staff)* |
+| POST   | `/api/leads/{id}/quotations` | `201` with the created draft quotation *(staff)* |
+| GET    | `/api/quotations/{id}`       | `200` with the quotation, or `404` if unknown *(staff)* |
+| POST   | `/api/quotations/{id}/update` | `200` with the updated draft *(staff)*      |
+| POST   | `/api/quotations/{id}/status` | `200` with the updated quotation *(staff)*  |
+| GET    | `/api/auth/session`          | `200` with the current session and CSRF token *(public)* |
+| POST   | `/api/auth/login`            | `200` with the staff member *(public)*       |
+| POST   | `/api/auth/logout`           | `204` *(public, CSRF-protected)*             |
+| GET    | `/api/auth/me`               | `200` with the current staff member *(staff)* |
 
 ### Create a lead
 
@@ -281,9 +384,9 @@ curl -X POST http://127.0.0.1:8000/api/leads/1/notes \
   -d '{"body": "Called and left a voicemail. Wants a quote for the second floor."}'
 ```
 
-Notes are append-only and have no author: authentication and users are out of
-scope for this milestone, so a note records what happened and when, not who did
-it.
+Notes are append-only and record what happened and when. They carry no author:
+the endpoint is staff-only, and the account that wrote the note is available from
+`GET /api/auth/me` for the current session.
 
 Set, reschedule or clear the next follow-up:
 
