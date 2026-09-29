@@ -2,9 +2,11 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    Boolean,
     Date,
     DateTime,
     ForeignKey,
+    Integer,
     Numeric,
     String,
     Text,
@@ -195,3 +197,108 @@ class QuotationItem(Base):
     line_total: Mapped[Decimal] = mapped_column(MONEY_TYPE, nullable=False)
 
     quotation: Mapped[Quotation] = relationship(back_populates="items")
+
+
+class StaffUser(Base):
+    """A staff member permitted to use the CRM.
+
+    There is no role or permission column: this is a single-role staff tool, and
+    an RBAC system is explicitly out of scope. `is_active` exists so an account
+    can be disabled instantly without deleting the audit trail of what it did.
+
+    There is no `password_changed_at` or invitation state for the same reason.
+    """
+
+    __tablename__ = "staff_users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    # Stored lowercased and trimmed, so uniqueness cannot be bypassed by case.
+    email: Mapped[str] = mapped_column(String(255), nullable=False, unique=True)
+
+    display_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    # An Argon2id PHC string, e.g. $argon2id$v=19$m=65536,t=3,p=4$... The
+    # plaintext password is never stored and never recoverable.
+    password_hash: Mapped[str] = mapped_column(Text, nullable=False)
+
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default="1"
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+        server_default=func.now(),
+    )
+
+
+class StaffSession(Base):
+    """A server-side staff session.
+
+    The opaque token is generated with ``secrets.token_urlsafe(32)`` and lives
+    only in the HttpOnly cookie. Only its SHA-256 digest is stored, so a database
+    dump or a SQL injection yields nothing that can be replayed as a session.
+
+    SHA-256 rather than Argon2 is correct here and is not a weakening: the token
+    is 256 bits of machine-generated randomness with no dictionary to attack, and
+    sessions must be *looked up* by digest, which requires a deterministic and
+    indexed hash. Human-chosen passwords get Argon2id; see StaffUser.
+    """
+
+    __tablename__ = "staff_sessions"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    staff_user_id: Mapped[int] = mapped_column(
+        ForeignKey("staff_users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+
+    # Hex SHA-256 of the cookie value.
+    token_hash: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+
+    # The CSRF token is also only ever stored hashed, for the same reason.
+    csrf_token_hash: Mapped[str] = mapped_column(String(64), nullable=False)
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+        server_default=func.now(),
+    )
+
+    expires_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+
+
+class LoginAttempt(Base):
+    """Failed-login counter used to throttle brute force.
+
+    Deliberately minimal and not an audit platform: one row per throttle key
+    holding a failure count and a window start. Rows are overwritten on each
+    attempt and expire naturally, so there is nothing to garbage-collect and no
+    background job is required.
+    """
+
+    __tablename__ = "login_attempts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    # SHA-256 of the lowercased email, combined with a fixed application
+    # namespace. Storing the digest rather than the address means this table
+    # cannot become a list of probed accounts.
+    key: Mapped[str] = mapped_column(String(64), nullable=False, unique=True)
+
+    failure_count: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0, server_default="0"
+    )
+
+    window_started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now, onupdate=utc_now
+    )

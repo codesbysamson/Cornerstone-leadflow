@@ -251,3 +251,49 @@ class QuotationRead(BaseModel):
         no sequence to keep in step.
         """
         return f"Q-{self.id:04d}"
+
+
+class StaffUserRead(BaseModel):
+    """The staff identity exposed to the CRM UI.
+
+    Deliberately omits `password_hash`. There is no `is_active` here either: the
+    frontend has no use for it, and returning the least possible is the safer
+    default.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: str
+    display_name: str | None = None
+
+
+class LoginRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    email: str
+    password: str
+
+
+class SessionProbe(BaseModel):
+    """What the frontend calls before deciding between the login screen and the
+    CRM. Always 200, so "not signed in" is a shape rather than an error."""
+
+    authenticated: bool
+    user: StaffUserRead | None = None
+
+    # The CSRF token the server has just bound to this browser, returned in the
+    # body as well as set as a cookie.
+    #
+    # The cookie alone is not enough for the client to be able to obtain it: the
+    # cookie is host-only, so a page served from a different host name than the
+    # API (`localhost` versus `127.0.0.1`, say) cannot read it through
+    # `document.cookie`, and would then send no `X-CSRF-Token` at all and be
+    # rejected at login with a bare 403.
+    #
+    # Returning it here makes the pre-authentication token reachable without
+    # depending on the two origins sharing a host. This does not weaken the
+    # double-submit check: login still requires the header to match the cookie,
+    # and a cross-origin attacker can read neither — CORS denies reading this
+    # response, and the cookie is not readable from their origin.
+    csrf_token: str

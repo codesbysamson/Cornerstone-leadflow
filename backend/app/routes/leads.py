@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies import require_staff
 from app.models import Lead, LeadNote
 from app.schemas import (
     FollowUpClear,
@@ -16,7 +17,20 @@ from app.schemas import (
     NoteRead,
 )
 
-router = APIRouter(prefix="/api/leads", tags=["leads"])
+# The public customer enquiry and the staff CRM share the /api/leads prefix, so
+# this module deliberately declares TWO routers over it.
+#
+# `public_router` holds only the customer submission. `staff_router` holds every
+# staff operation and carries the authentication dependency at the router level,
+# so a route added here later is protected by default rather than by remembering
+# to add a dependency. Collapsing these into one router would put staff
+# protection on the public enquiry endpoint and break the website.
+public_router = APIRouter(prefix="/api/leads", tags=["leads"])
+staff_router = APIRouter(
+    prefix="/api/leads",
+    tags=["leads"],
+    dependencies=[Depends(require_staff)],
+)
 
 
 def _require_lead(lead_id: int, db: Session) -> Lead:
@@ -34,7 +48,7 @@ def _require_lead(lead_id: int, db: Session) -> Lead:
     return lead
 
 
-@router.post("", response_model=LeadRead, status_code=status.HTTP_201_CREATED)
+@public_router.post("", response_model=LeadRead, status_code=status.HTTP_201_CREATED)
 def create_lead(payload: LeadCreate, db: Session = Depends(get_db)) -> Lead:
     lead = Lead(**payload.model_dump())
     db.add(lead)
@@ -43,7 +57,7 @@ def create_lead(payload: LeadCreate, db: Session = Depends(get_db)) -> Lead:
     return lead
 
 
-@router.get("", response_model=list[LeadRead])
+@staff_router.get("", response_model=list[LeadRead])
 def list_leads(db: Session = Depends(get_db)) -> list[Lead]:
     # Newest first. Lead id is a tiebreaker so rows written in the same instant
     # still have a deterministic order.
@@ -51,12 +65,12 @@ def list_leads(db: Session = Depends(get_db)) -> list[Lead]:
     return list(result.scalars().all())
 
 
-@router.get("/{lead_id}", response_model=LeadRead)
+@staff_router.get("/{lead_id}", response_model=LeadRead)
 def get_lead(lead_id: int, db: Session = Depends(get_db)) -> Lead:
     return _require_lead(lead_id, db)
 
 
-@router.post("/{lead_id}/status", response_model=LeadRead)
+@staff_router.post("/{lead_id}/status", response_model=LeadRead)
 def update_lead_status(
     lead_id: int, payload: LeadStatusUpdate, db: Session = Depends(get_db)
 ) -> Lead:
@@ -76,7 +90,7 @@ def update_lead_status(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/{lead_id}/notes", response_model=list[NoteRead])
+@staff_router.get("/{lead_id}/notes", response_model=list[NoteRead])
 def list_notes(lead_id: int, db: Session = Depends(get_db)) -> list[LeadNote]:
     _require_lead(lead_id, db)
 
@@ -90,7 +104,7 @@ def list_notes(lead_id: int, db: Session = Depends(get_db)) -> list[LeadNote]:
     return list(result.scalars().all())
 
 
-@router.post(
+@staff_router.post(
     "/{lead_id}/notes", response_model=NoteRead, status_code=status.HTTP_201_CREATED
 )
 def create_note(
@@ -114,7 +128,7 @@ def create_note(
 # ---------------------------------------------------------------------------
 
 
-@router.post("/{lead_id}/follow-up", response_model=LeadRead)
+@staff_router.post("/{lead_id}/follow-up", response_model=LeadRead)
 def set_follow_up(
     lead_id: int,
     payload: Annotated[FollowUpSet | FollowUpClear, Body()],

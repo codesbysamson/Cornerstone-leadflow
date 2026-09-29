@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies import require_staff
 from app.models import Lead, Quotation, QuotationItem
 from app.money import (
     MoneyError,
@@ -28,7 +29,13 @@ from app.schemas import (
     QuotationWrite,
 )
 
-router = APIRouter(prefix="/api", tags=["quotations"])
+# Every quotation route is staff-only, so the dependency sits on the router:
+# a route added here later is protected by default.
+router = APIRouter(
+    prefix="/api",
+    tags=["quotations"],
+    dependencies=[Depends(require_staff)],
+)
 
 #: The only permitted moves. A quotation is a document a customer may already
 #: be looking at, so it is not editable once it has left the building, and its

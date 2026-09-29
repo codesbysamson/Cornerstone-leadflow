@@ -19,9 +19,9 @@ VALID_ENQUIRY = {
 
 
 def test_create_lead_returns_201_and_persists(
-    client: TestClient, session: Session
+    public_client: TestClient, session: Session
 ) -> None:
-    response = client.post("/api/leads", json=VALID_ENQUIRY)
+    response = public_client.post("/api/leads", json=VALID_ENQUIRY)
 
     assert response.status_code == 201
     body = response.json()
@@ -36,8 +36,15 @@ def test_create_lead_returns_201_and_persists(
     assert stored.email == "sarah@example.com"
 
 
-def test_created_lead_can_be_retrieved(client: TestClient) -> None:
-    created = client.post("/api/leads", json=VALID_ENQUIRY).json()
+def test_created_lead_can_be_retrieved(
+    client: TestClient, public_client: TestClient
+) -> None:
+    """The public enquiry and the staff CRM meeting end to end.
+
+    Submitted with no session at all, then read back with one: if the split
+    between the two routers is wrong, this fails.
+    """
+    created = public_client.post("/api/leads", json=VALID_ENQUIRY).json()
 
     response = client.get(f"/api/leads/{created['id']}")
 
@@ -59,18 +66,18 @@ def test_created_lead_can_be_retrieved(client: TestClient) -> None:
         assert body[field] == VALID_ENQUIRY[field]
 
 
-def test_create_lead_without_required_field_returns_422(client: TestClient) -> None:
+def test_create_lead_without_required_field_returns_422(public_client: TestClient) -> None:
     payload = {key: value for key, value in VALID_ENQUIRY.items() if key != "location"}
 
-    response = client.post("/api/leads", json=payload)
+    response = public_client.post("/api/leads", json=payload)
 
     assert response.status_code == 422
 
 
-def test_create_lead_with_invalid_email_returns_422(client: TestClient) -> None:
+def test_create_lead_with_invalid_email_returns_422(public_client: TestClient) -> None:
     payload = {**VALID_ENQUIRY, "email": "not-an-email"}
 
-    response = client.post("/api/leads", json=payload)
+    response = public_client.post("/api/leads", json=payload)
 
     assert response.status_code == 422
 
@@ -83,7 +90,7 @@ def test_get_unknown_lead_returns_404(client: TestClient) -> None:
 
 
 def test_client_cannot_override_system_owned_fields(
-    client: TestClient, session: Session
+    public_client: TestClient, session: Session
 ) -> None:
     payload = {
         **VALID_ENQUIRY,
@@ -93,7 +100,7 @@ def test_client_cannot_override_system_owned_fields(
         "created_at": "1999-01-01T00:00:00Z",
     }
 
-    response = client.post("/api/leads", json=payload)
+    response = public_client.post("/api/leads", json=payload)
 
     assert response.status_code == 422
 

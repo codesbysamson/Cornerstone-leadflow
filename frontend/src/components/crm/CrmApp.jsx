@@ -15,9 +15,12 @@ import {
   transitionQuotation,
   updateQuotation,
 } from '../../lib/quotationApi.js'
+import { logout, probeSession } from '../../lib/authApi.js'
+import { SessionExpiredError } from '../../lib/authApi.js'
 import { Dashboard } from './Dashboard.jsx'
 import { LeadDetail } from './LeadDetail.jsx'
 import { LeadList } from './LeadList.jsx'
+import { LoginScreen } from './LoginScreen.jsx'
 import { QuotationEditor } from './QuotationEditor.jsx'
 import { QuotationPreview } from './QuotationPreview.jsx'
 
@@ -33,8 +36,17 @@ import { QuotationPreview } from './QuotationPreview.jsx'
  * `quotationView` so the quotation sub-screen is a mode rather than a route.
  * The back stack is tracked explicitly because a quotation opened from a
  * quotation (a second version of the same quote) must still return sensibly.
+ *
+ * The whole CRM sits behind a session gate. The gate is a usability
+ * convenience, not the control: the API rejects every unauthenticated request
+ * regardless of what this component does, and `handleApiError` bounces back to
+ * the sign-in screen the moment a session lapses mid-use.
  */
 export function CrmApp({ onExit }) {
+  // 'checking' | 'authenticated' | 'anonymous' | 'unreachable'
+  const [sessionState, setSessionState] = useState('checking')
+  const [staff, setStaff] = useState(null)
+
   const [leads, setLeads] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -54,6 +66,43 @@ export function CrmApp({ onExit }) {
   const [quotations, setQuotations] = useState([])
   const [quotationError, setQuotationError] = useState(null)
 
+  /**
+   * The one place a failed API call is classified.
+   *
+   * An expired session is not a per-screen error to be displayed: it means the
+   * browser is no longer signed in, so the right response is to drop straight
+   * back to the sign-in screen. Treating it as a failed note save would tell
+   * staff their work was lost, which is both wrong and alarming.
+   */
+  const handleApiError = useCallback((error, setError) => {
+    if (error instanceof SessionExpiredError) {
+      setSessionState('anonymous')
+      setStaff(null)
+      return
+    }
+    setError(error.message)
+  }, [])
+
+  useEffect(() => {
+    let active = true
+
+    probeSession()
+      .then((result) => {
+        if (!active) return
+        setStaff(result.authenticated ? result.user : null)
+        setSessionState(result.authenticated ? 'authenticated' : 'anonymous')
+      })
+      .catch(() => {
+        // The API itself is unreachable, which is different from being signed
+        // out: asking for a password would be pointless.
+        if (active) setSessionState('unreachable')
+      })
+
+    return () => {
+      active = false
+    }
+  }, [])
+
   const load = useCallback(async () => {
     setLoading(true)
     setLoadError(null)
@@ -62,15 +111,35 @@ export function CrmApp({ onExit }) {
       const data = await listLeads()
       setLeads(Array.isArray(data) ? data : [])
     } catch (error) {
-      setLoadError(error.message)
+      handleApiError(error, setLoadError)
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [handleApiError])
 
+  // Only load once there is a session to load with. Without this the first
+  // render would fire an unauthenticated request and 401 before the user had
+  // been given any chance to sign in.
   useEffect(() => {
-    load()
-  }, [load])
+    if (sessionState === 'authenticated') {
+      load()
+    }
+  }, [sessionState, load])
+
+  async function handleSignOut() {
+    // The in-memory state is cleared regardless of whether the call succeeds:
+    // if the network is down the server-side session may survive, but this
+    // browser should still stop acting as a signed-in user.
+    await logout()
+    setLeads([])
+    setSelectedId(null)
+    setNotes([])
+    setQuotationView('list')
+    setQuotation(null)
+    setEditingQuotation(null)
+    setStaff(null)
+    setSessionState('anonymous')
+  }
 
   const selectedLead =
     selectedId === null
@@ -156,7 +225,7 @@ export function CrmApp({ onExit }) {
       const data = await getQuotation(id)
       setQuotation(data)
     } catch (error) {
-      setQuotationError(error.message)
+      handleApiError(error, setQuotationError)
     }
   }
 
@@ -185,7 +254,7 @@ export function CrmApp({ onExit }) {
       setQuotationView('preview')
     } catch (error) {
       // The editor stays open with its contents intact so nothing is retyped.
-      setQuotationError(error.message)
+      handleApiError(error, setQuotationError)
     } finally {
       setSaving(false)
     }
@@ -209,7 +278,7 @@ export function CrmApp({ onExit }) {
         if (Array.isArray(data)) setLeads(data)
       }
     } catch (error) {
-      setQuotationError(error.message)
+      handleApiError(error, setQuotationError)
     } finally {
       setSaving(false)
     }
@@ -224,7 +293,7 @@ export function CrmApp({ onExit }) {
     try {
       applyLead(await updateLeadStatus(selectedLead.id, status))
     } catch (error) {
-      setSaveError(error.message)
+      handleApiError(error, setSaveError)
     } finally {
       setSaving(false)
     }
@@ -243,7 +312,7 @@ export function CrmApp({ onExit }) {
       setNotes((current) => [created, ...current])
       return true
     } catch (error) {
-      setSaveError(error.message)
+      handleApiError(error, setSaveError)
       return false
     } finally {
       setSaving(false)
@@ -259,7 +328,7 @@ export function CrmApp({ onExit }) {
     try {
       applyLead(await saveFollowUp(selectedLead.id, dueAt, action))
     } catch (error) {
-      setSaveError(error.message)
+      handleApiError(error, setSaveError)
     } finally {
       setSaving(false)
     }
@@ -274,7 +343,7 @@ export function CrmApp({ onExit }) {
     try {
       applyLead(await clearFollowUp(selectedLead.id))
     } catch (error) {
-      setSaveError(error.message)
+      handleApiError(error, setSaveError)
     } finally {
       setSaving(false)
     }
@@ -308,6 +377,46 @@ export function CrmApp({ onExit }) {
     setQuotationError(null)
   }
 
+  // The gate. Nothing below is reached until the API confirms a live session.
+  if (sessionState === 'checking') {
+    return (
+      <div className="crm">
+        <main className="crm__main">
+          <p className="crm-boot" role="status">
+            Checking your session…
+          </p>
+        </main>
+      </div>
+    )
+  }
+
+  if (sessionState === 'unreachable') {
+    return (
+      <div className="crm">
+        <main className="crm__main">
+          <div className="crm-alert" role="alert">
+            <p>
+              Could not reach the LeadFlow API. Check that the backend is running
+              and reload this page.
+            </p>
+          </div>
+        </main>
+      </div>
+    )
+  }
+
+  if (sessionState === 'anonymous') {
+    return (
+      <LoginScreen
+        onSignedIn={(user) => {
+          setStaff(user)
+          setSessionState('authenticated')
+        }}
+        onExit={onExit}
+      />
+    )
+  }
+
   return (
     <div className="crm">
       <header className="crm__appbar">
@@ -318,6 +427,11 @@ export function CrmApp({ onExit }) {
               <span className="crm__product">Apex LeadFlow</span>
               <span className="crm__context">Internal · Lead management</span>
             </span>
+            {staff ? (
+              <span className="crm__who">
+                {staff.display_name || staff.email}
+              </span>
+            ) : null}
           </div>
 
           <nav className="crm__nav" aria-label="CRM sections">
@@ -328,6 +442,9 @@ export function CrmApp({ onExit }) {
               onClick={handleBack}
             >
               Leads
+            </button>
+            <button type="button" className="crm__exit" onClick={handleSignOut}>
+              Sign out
             </button>
             <button type="button" className="crm__exit" onClick={onExit}>
               Exit CRM

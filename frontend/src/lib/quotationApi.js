@@ -2,28 +2,38 @@
  * Quotation API client for the staff CRM.
  *
  * Kept separate from lib/api.js (the customer quote request) and alongside
- * lib/crmApi.js, which holds the lead-side calls. All requests are GET or POST
- * so the API's existing CORS configuration needs no change.
+ * lib/crmApi.js, which holds the lead-side calls.
  *
  * Money is sent as strings and received as strings: the API persists Decimal
  * and serialises amounts as JSON strings, because JSON numbers cannot represent
  * decimal money exactly.
+ *
+ * Like crmApi.js, every call is credentialed: quotations are staff-only, so the
+ * session cookie and the CSRF header come from authApi.js. The public quote
+ * request in lib/api.js is unaffected and sends neither.
  */
 
-const API_BASE_URL = (
-  import.meta.env.VITE_API_BASE_URL ?? 'http://127.0.0.1:8000'
-).replace(/\/+$/, '')
+import { API_BASE_URL } from './apiConfig.js'
+import { SessionExpiredError, staffRequestOptions } from './authApi.js'
 
 export const API_ROOT = `${API_BASE_URL}/api`
 
 const REQUEST_FAILED =
   'Could not reach the LeadFlow API. Check that the backend is running and try again.'
 
-async function request(path, failureMessage, options = {}) {
+async function request(path, failureMessage, method, payload) {
+  const writes = method !== 'GET'
+
   let response
 
   try {
-    response = await fetch(path, options)
+    // Session cookie, CSRF header and JSON body are all attached here, so no
+    // individual call can forget any of them.
+    response = await fetch(path, {
+      ...staffRequestOptions(method, writes ? { 'Content-Type': 'application/json' } : {}),
+      method,
+      ...(writes ? { body: JSON.stringify(payload) } : {}),
+    })
   } catch {
     throw new Error(REQUEST_FAILED)
   }
@@ -33,6 +43,16 @@ async function request(path, failureMessage, options = {}) {
     body = await response.json()
   } catch {
     body = null
+  }
+
+  if (response.status === 401) {
+    // Distinguished so an expired session returns to the sign-in screen rather
+    // than showing a misleading quotation error.
+    throw new SessionExpiredError()
+  }
+
+  if (response.status === 403) {
+    throw new Error('Your session has expired. Please sign in again.')
   }
 
   if (response.status === 404) {
@@ -49,14 +69,6 @@ async function request(path, failureMessage, options = {}) {
   }
 
   return body
-}
-
-function jsonBody(payload) {
-  return {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  }
 }
 
 /** Serialises the editor state. Totals are deliberately not sent. */
@@ -77,7 +89,7 @@ export async function listQuotations(leadId) {
   return request(
     `${API_ROOT}/leads/${leadId}/quotations`,
     'The quotations could not be loaded.',
-    { method: 'GET' },
+    'GET',
   )
 }
 
@@ -85,7 +97,7 @@ export async function getQuotation(quotationId) {
   return request(
     `${API_ROOT}/quotations/${quotationId}`,
     'The quotation could not be loaded.',
-    { method: 'GET' },
+    'GET',
   )
 }
 
@@ -93,7 +105,8 @@ export async function createQuotation(leadId, draft) {
   return request(
     `${API_ROOT}/leads/${leadId}/quotations`,
     'The quotation could not be created.',
-    jsonBody(quotationBody(draft)),
+    'POST',
+    quotationBody(draft),
   )
 }
 
@@ -101,7 +114,8 @@ export async function updateQuotation(quotationId, draft) {
   return request(
     `${API_ROOT}/quotations/${quotationId}/update`,
     'The draft could not be saved. Your changes were not applied.',
-    jsonBody(quotationBody(draft)),
+    'POST',
+    quotationBody(draft),
   )
 }
 
@@ -109,6 +123,7 @@ export async function transitionQuotation(quotationId, status) {
   return request(
     `${API_ROOT}/quotations/${quotationId}/status`,
     'The status could not be changed. Nothing was updated.',
-    jsonBody({ status }),
+    'POST',
+    { status },
   )
 }
